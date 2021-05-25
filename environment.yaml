@@ -1,4 +1,4 @@
-name: world_on_rails
+name: wor
 channels:
   - pytorch
   - anaconda

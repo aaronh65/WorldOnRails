@@ -5,8 +5,9 @@ from leaderboard.utils.statistics_manager import StatisticsManager
 
 @ray.remote(num_cpus=1./8, num_gpus=1./4, max_restarts=100, max_task_retries=-1)
 class ScenarioRunner():
-    def __init__(self, args, scenario_class, scenario, route, checkpoint='simulation_results.json', town=None, port=1000, tm_port=1002, debug=False):
+    def __init__(self, args, scenario_class, scenario, route, checkpoint='simulation_results.json', town=None, port=2000, tm_port=2002, debug=False):
         args = deepcopy(args)
+        print('INITIALIZING')
 
         # Inject args
         args.scenario_class = scenario_class
@@ -19,8 +20,11 @@ class ScenarioRunner():
         args.checkpoint = checkpoint
         args.record = ''
 
+        print('LEADER INIT')
         self.runner = LeaderboardEvaluator(args, StatisticsManager())
+        print('DONE INIT')
         self.args = args
 
     def run(self):
+        print('RUNNING SCRIPT')
         return self.runner.run(self.args)

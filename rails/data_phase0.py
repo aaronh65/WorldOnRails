@@ -4,6 +4,7 @@ from runners import ScenarioRunner
 def main(args):
     
     scenario = 'assets/no_scenarios.json'
+    scenario_class = 'train_scenario'
     route = 'assets/routes_phase0.xml'
     
     args.agent = 'autoagents/collector_agents/random_collector'
@@ -13,10 +14,15 @@ def main(args):
     for i in range(args.num_runners):
         port = (i+1) * args.port
         tm_port = port + 2
-        runner = ScenarioRunner.remote(args, scenario, route, port=port, tm_port=tm_port)
+        runner = ScenarioRunner.remote(args, scenario_class, scenario, route, port=port, tm_port=tm_port)
         jobs.append(runner.run.remote())
     
     ray.wait(jobs, num_returns=args.num_runners)
+    print('done')
+    #port = 2000
+    #tm_port = 2002
+    #runner = ScenarioRunner(args, scenario_class, scenario, route, port=port, tm_port=tm_port)
+    #runner.run()
     
 if __name__ == '__main__':
     
@@ -40,7 +46,7 @@ if __name__ == '__main__':
     # parser.add_argument("--agent-config", type=str, help="Path to Agent's configuration file", default="")
     parser.add_argument('--repetitions',
                         type=int,
-                        default=100,
+                        default=2,
                         help='Number of repetitions per route.')
     parser.add_argument("--track", type=str, default='MAP', help="Participation track: SENSORS, MAP")
     parser.add_argument('--resume', type=bool, default=False, help='Resume execution from last checkpoint?')
