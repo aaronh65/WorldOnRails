@@ -38,7 +38,7 @@ if __name__ == '__main__':
     parser.add_argument('--port', type=int, default=2000)
     parser.add_argument('--trafficManagerSeed', default='0',
                         help='Seed used by the TrafficManager (default: 0)')
-    parser.add_argument('--timeout', default="60.0",
+    parser.add_argument('--timeout', default="600.0",
                         help='Set the CARLA client timeout value in seconds')
 
     # agent-related options
