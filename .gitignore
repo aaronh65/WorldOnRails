@@ -1,4 +1,5 @@
 simulation_results.json
+*.swp
 
 # Byte-compiled / optimized / DLL files
 *.out
