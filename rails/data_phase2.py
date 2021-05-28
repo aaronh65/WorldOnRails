@@ -35,7 +35,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--data-dir', default='/ssd2/dian/challenge_data/main_trajs6')
+    parser.add_argument('--data-dir', default='/data/aaronhua/wor/data/main/test')
     parser.add_argument('--config-path', default='config.yaml')
     parser.add_argument('--device', choices=['cpu', 'cuda'], default='cuda')
 
