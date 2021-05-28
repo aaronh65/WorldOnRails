@@ -1264,8 +1264,7 @@ class ModuleWorld(object):
             if not self._is_point_on_sidewalk(world_pos, world_to_pixel) \
             and is_within_distance_ahead(w[0].get_transform(),
                                         self.hero_actor.get_transform(),
-                                        15,
-                                        degree=degree) \
+                                        15) \
             and abs(w[0].get_location().z - self.hero_actor.get_location().z) < 1:
 
                 angle = self.hero_actor.get_transform().rotation.yaw * math.pi/180
@@ -1292,8 +1291,11 @@ class ModuleWorld(object):
             
             ignore = False
             
-            fairly_close = is_within_distance_ahead(v[0].get_transform(), self.hero_actor.get_transform(), 25, 150)
-            very_close = is_within_distance_ahead(v[0].get_transform(), self.hero_actor.get_transform(), 10, 120)
+            #fairly_close = is_within_distance_ahead(v[0].get_transform(), self.hero_actor.get_transform(), 25, 150)
+            #very_close = is_within_distance_ahead(v[0].get_transform(), self.hero_actor.get_transform(), 10, 120)
+            fairly_close = is_within_distance_ahead(v[0].get_transform(), self.hero_actor.get_transform(), 150)
+            very_close = is_within_distance_ahead(v[0].get_transform(), self.hero_actor.get_transform(), 120)
+
             
             wpt = self.town_map.get_waypoint(v[0].get_location())
             

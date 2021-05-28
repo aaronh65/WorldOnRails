@@ -121,7 +121,6 @@ class RandomCollector(AutonomousAgent):
         
         # Abort if collided
         if col:
-            print('COLLIDED')
             self.flush_data()
             raise Exception('Collector has collided!! Heading out :P')
         

@@ -33,7 +33,7 @@ noise_collect: False
 use_narr_cam: True
 multi_cam: True
 all_speeds: True
-ego_data_dir: /data/aaronhua/wor/data/test
-ego_model_dir: [PATH TO PHASE 0 MODEL]
-main_data_dir: [PATH TO PHASE 1/2 DATA]
+ego_data_dir: /data/aaronhua/wor/data/ego/test
+ego_model_dir: /data/aaronhua/wor/training/ego/base/ego_model.th
+main_data_dir: /data/aaronhua/wor/data/main/test
 main_model_dir: [PATH TO PHASE 2 MODEL]
