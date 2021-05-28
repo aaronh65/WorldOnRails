@@ -51,9 +51,9 @@ if __name__ == '__main__':
 
     parser.add_argument('--num-workers', type=int, default=0) 
     parser.add_argument('--ego-traj-len', type=int, default=5)
-    #parser.add_argument('--batch-size', type=int, default=128)
-    parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epoch', type=int, default=10)
+    parser.add_argument('--batch-size', type=int, default=128)
+    #parser.add_argument('--batch-size', type=int, default=16)
+    parser.add_argument('--num-epoch', type=int, default=100)
     parser.add_argument('--lr', type=float, default=1e-2)
 
     # Logging config
