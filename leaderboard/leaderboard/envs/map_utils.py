@@ -77,7 +77,25 @@ import numpy as np
 
 # from . import RoadOption
 from agents.navigation.local_planner import RoadOption
-from agents.tools.misc import is_within_distance_ahead, is_within_distance, compute_distance
+from agents.tools.misc import is_within_distance, compute_distance
+
+def is_within_distance_ahead(target_transform, current_transform, max_distance, degree=90.):
+
+    target_vector = np.array([target_transform.location.x - current_transform.location.x, target_transform.location.y - current_transform.location.y])
+    norm_target = np.linalg.norm(target_vector)
+
+    # If the vector is too short, we can simply stop here
+    if norm_target < 0.001:
+        return True
+
+    if norm_target > max_distance:
+        return False
+
+    fwd = current_transform.get_forward_vector()
+    forward_vector = np.array([fwd.x, fwd.y])
+    d_angle = math.degrees(math.acos(np.clip(np.dot(forward_vector, target_vector) / norm_target, -1., 1.)))
+
+    return d_angle < degree
 
 # ==============================================================================
 # -- Constants -----------------------------------------------------------------
@@ -1264,7 +1282,8 @@ class ModuleWorld(object):
             if not self._is_point_on_sidewalk(world_pos, world_to_pixel) \
             and is_within_distance_ahead(w[0].get_transform(),
                                         self.hero_actor.get_transform(),
-                                        15) \
+                                        15,
+                                        degree=degree) \
             and abs(w[0].get_location().z - self.hero_actor.get_location().z) < 1:
 
                 angle = self.hero_actor.get_transform().rotation.yaw * math.pi/180
@@ -1291,10 +1310,8 @@ class ModuleWorld(object):
             
             ignore = False
             
-            #fairly_close = is_within_distance_ahead(v[0].get_transform(), self.hero_actor.get_transform(), 25, 150)
-            #very_close = is_within_distance_ahead(v[0].get_transform(), self.hero_actor.get_transform(), 10, 120)
-            fairly_close = is_within_distance_ahead(v[0].get_transform(), self.hero_actor.get_transform(), 150)
-            very_close = is_within_distance_ahead(v[0].get_transform(), self.hero_actor.get_transform(), 120)
+            fairly_close = is_within_distance_ahead(v[0].get_transform(), self.hero_actor.get_transform(), 25, 150)
+            very_close = is_within_distance_ahead(v[0].get_transform(), self.hero_actor.get_transform(), 10, 120)
 
             
             wpt = self.town_map.get_waypoint(v[0].get_location())
