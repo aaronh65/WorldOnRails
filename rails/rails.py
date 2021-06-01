@@ -245,6 +245,7 @@ class RAILSActionLabeler():
 
         # Allocate idxes
         total_frames = ray.get(dataset.num_frames.remote())
+        #total_frames = dataset.num_frames
         self.start_idx = total_frames//total_worker*worker_id
         self.end_idx = min(total_frames//total_worker*(worker_id+1), total_frames)
         if worker_id == total_worker-1:
@@ -279,8 +280,17 @@ class RAILSActionLabeler():
                     act_val_brak=float(action_value[0,-1]),
                     cmd=cmd,
                 ), count, worker_id=self.worker_id)
+                #logger.log_label_info(dict(
+                #    wide_rgb=wide_rgb,
+                #    narr_rgb=narr_rgb,
+                #    act_val_norm=action_value[0,:-1].reshape(self._rails.num_throts, self._rails.num_steers),
+                #    act_val_brak=float(action_value[0,-1]),
+                #    cmd=cmd,
+                #), count, worker_id=self.worker_id)
+
             
             self.write_dataset.save.remote(idx*len(self.camera_yaws), action_values)
+            #self.write_dataset.save(idx*len(self.camera_yaws), action_values)
         
         logger.log_label_info.remote(dict(
             wide_rgb=wide_rgb,
@@ -289,3 +299,11 @@ class RAILSActionLabeler():
             act_val_brak=float(action_value[0,-1]),
             cmd=cmd,
         ), count, worker_id=self.worker_id)
+
+        #logger.log_label_info(dict(
+        #    wide_rgb=wide_rgb,
+        #    narr_rgb=narr_rgb,
+        #    act_val_norm=action_value[0,:-1].reshape(self._rails.num_throts, self._rails.num_steers),
+        #    act_val_brak=float(action_value[0,-1]),
+        #    cmd=cmd,
+        #), count, worker_id=self.worker_id)
