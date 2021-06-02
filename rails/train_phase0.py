@@ -39,7 +39,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('--data-dir', default='/data/aaronhua/wor/data/test')
+    parser.add_argument('--data-dir', default='/data/aaronhua/wor/data/ego/test')
     parser.add_argument('--save-dir', default='/data/aaronhua/wor/training/ego_model')
     parser.add_argument('--config-path', default='')
     parser.add_argument('--device', choices=['cpu', 'cuda'], default='cuda')
