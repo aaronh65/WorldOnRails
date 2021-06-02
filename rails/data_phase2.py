@@ -11,23 +11,16 @@ def main(args):
     logger = RemoteLogger.remote('carla_data_phase2', args)
     dataset = RemoteMainDataset.remote(args.data_dir, args.config_path)
     total_frames = ray.get(dataset.num_frames.remote())
-    #logger = RemoteLogger('carla_data_phase2', args)
-    #dataset = RemoteMainDataset(args.data_dir, args.config_path)
-    #total_frames = dataset.num_frames
 
-    print('jobs')
     jobs = []
     for worker_id in range(args.num_workers):
         labeler = RAILSActionLabeler.remote(args, dataset, worker_id=worker_id, total_worker=args.num_workers)
         jobs.append(labeler.run.remote(logger))
-        #labeler = RAILSActionLabeler(args, dataset, worker_id=worker_id, total_worker=args.num_workers)
 
-    print('frames')
     frames = 0
     pbar = tqdm.tqdm(total=total_frames)
     while True:
         time.sleep(1.)
-        #current_frames = logger.total_frames()
         current_frames = ray.get(logger.total_frames.remote())
         pbar.update(current_frames - frames)
         frames = current_frames
@@ -36,10 +29,8 @@ def main(args):
             break
 
     ray.wait([dataset.commit.remote()])
-    #dataset.commit()
 
 if __name__ == '__main__':
-    #print(torch.cuda.is_available())
     
     import argparse
     parser = argparse.ArgumentParser()
@@ -64,5 +55,5 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     
-    ray.init(logging_level=30, local_mode=True, log_to_driver=False)
+    ray.init(logging_level=30, local_mode=False, log_to_driver=False)
     main(args)

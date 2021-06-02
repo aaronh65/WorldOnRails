@@ -210,7 +210,7 @@ class LabeledMainDataset(MainDataset):
         return wide_rgb, wide_sem, narr_rgb, narr_sem, act_val, float(spd), int(cmd)
 
 
-@ray.remote(num_cpus=1./2, num_gpus=1./2)
+@ray.remote
 class RemoteMainDataset(MainDataset):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

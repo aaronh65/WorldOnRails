@@ -58,7 +58,6 @@ if __name__ == '__main__':
 
     # Logging config
     parser.add_argument('--num-per-log', type=int, default=10)
-    parser.add_argument('--balanced-cmd', action='store_true')
 
     args = parser.parse_args()
     args.save_dir = f'{args.save_dir}/{args.id}'

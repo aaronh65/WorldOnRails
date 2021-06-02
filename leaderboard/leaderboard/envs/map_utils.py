@@ -1312,7 +1312,6 @@ class ModuleWorld(object):
             
             fairly_close = is_within_distance_ahead(v[0].get_transform(), self.hero_actor.get_transform(), 25, 150)
             very_close = is_within_distance_ahead(v[0].get_transform(), self.hero_actor.get_transform(), 10, 120)
-
             
             wpt = self.town_map.get_waypoint(v[0].get_location())
             

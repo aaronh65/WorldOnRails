@@ -45,8 +45,8 @@ if __name__ == '__main__':
     
     parser.add_argument('--resume', default=None)
     
-    parser.add_argument('--data-dir', default='/ssd2/dian/challenge_data/main_trajs6')
-    parser.add_argument('--config-path', default='/home/dianchen/carla_challenge/config.yaml')
+    parser.add_argument('--data-dir', default='/data/aaronhua/wor/data/main/test2')
+    parser.add_argument('--config-path', default='config.yaml')
     parser.add_argument('--device', choices=['cpu', 'cuda'], default='cuda')
     
     # Training data config
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     parser.add_argument('--num-repeat', type=int, default=4)    # Should be consistent with autoagents/collector_agents/config.yaml
 
     parser.add_argument('--num-workers', type=int, default=8)
-    parser.add_argument('--batch-size', type=int, default=128)
+    parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--num-epoch', type=int, default=20)
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--weight-decay', type=float, default=3e-5)
