@@ -97,7 +97,9 @@ class LeaderboardEvaluator(object):
 
         # Load agent
         module_name = os.path.basename(args.agent).split('.')[0]
+        print(module_name)
         sys.path.insert(0, os.path.dirname(args.agent))
+        print(args.agent)
         self.module_agent = importlib.import_module(module_name)
 
         # Create the ScenarioManager
@@ -464,6 +466,10 @@ def main():
                         type=int,
                         default=1,
                         help='Number of repetitions per route.')
+    parser.add_argument('--scenario_class',
+                        type=str,
+                        default='route_scenario',
+                        choices=['route_scenario', 'train_scenario', 'nocrash_train_scenario', 'nocrash_eval_scenario'])
 
     # agent-related options
     parser.add_argument("-a", "--agent", type=str, help="Path to Agent's py file to evaluate", required=True)
