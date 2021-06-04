@@ -51,6 +51,8 @@ class CarlaDataProvider(object):  # pylint: disable=too-many-public-methods
     _actor_transform_map = dict()
     _traffic_light_map = dict()
     _carla_actor_pool = dict()
+    _route_completion_list = list()
+    _infraction_list = list()
     _client = None
     _world = None
     _map = None
@@ -771,6 +773,23 @@ class CarlaDataProvider(object):  # pylint: disable=too-many-public-methods
         """
         CarlaDataProvider._traffic_manager_port = tm_port
 
+    # experimental code starts here
+    @staticmethod
+    def get_route_completion_list():
+        return CarlaDataProvider._route_completion_list
+    
+    @staticmethod
+    def set_route_completion_list(route_completion_list):
+        CarlaDataProvider._route_completion_list = route_completion_list
+
+    @staticmethod
+    def get_infraction_list():
+        return CarlaDataProvider._infraction_list
+
+    @staticmethod
+    def set_infraction_list(infraction_list):
+        CarlaDataProvider._infraction_list = infraction_list
+
     @staticmethod
     def cleanup():
         """
@@ -797,6 +816,8 @@ class CarlaDataProvider(object):  # pylint: disable=too-many-public-methods
         CarlaDataProvider._actor_location_map.clear()
         CarlaDataProvider._actor_transform_map.clear()
         CarlaDataProvider._traffic_light_map.clear()
+        CarlaDataProvider._infraction_list.clear()
+        CarlaDataProvider._route_completion_list.clear()
         CarlaDataProvider._map = None
         CarlaDataProvider._world = None
         CarlaDataProvider._sync_flag = False

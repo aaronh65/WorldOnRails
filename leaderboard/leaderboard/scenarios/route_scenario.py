@@ -185,6 +185,7 @@ class RouteScenario(BasicScenario):
         self.config = config
         self.route = None
         self.sampled_scenarios_definitions = None
+        self.route_var_name_class_lookup = {}
 
         self._update_route(world, config, debug_mode>0)
 
@@ -218,7 +219,8 @@ class RouteScenario(BasicScenario):
         world_annotations = RouteParser.parse_annotations_file(config.scenario_file)
         
         # prepare route's trajectory (interpolate and add the GPS route)
-        gps_route, route = interpolate_trajectory(world, config.trajectory)
+        hop_resolution = 1.0
+        gps_route, route = interpolate_trajectory(world, config.trajectory, hop_resolution)
 
         potential_scenarios_definitions, _ = RouteParser.scan_route_for_scenarios(
             config.town, route, world_annotations)
@@ -395,6 +397,7 @@ class RouteScenario(BasicScenario):
                                                                           ego_vehicle.get_transform(),
                                                                           'hero')]
             route_var_name = "ScenarioRouteNumber{}".format(scenario_number)
+            self.route_var_name_class_lookup[route_var_name] = scenario_class.__name__
             scenario_configuration.route_var_name = route_var_name
             try:
                 scenario_instance = scenario_class(world, [ego_vehicle], scenario_configuration,
@@ -521,6 +524,7 @@ class RouteScenario(BasicScenario):
         )
 
         subbehavior.add_child(scenario_triggerer)  # make ScenarioTriggerer the first thing to be checked
+        self.scenario_triggerer = scenario_triggerer
         subbehavior.add_children(scenario_behaviors)
         subbehavior.add_child(Idle())  # The behaviours cannot make the route scenario stop
         behavior.add_child(subbehavior)
@@ -536,7 +540,8 @@ class RouteScenario(BasicScenario):
 
         route_criterion = InRouteTest(self.ego_vehicles[0],
                                       route=route,
-                                      offroad_max=30,
+                                      #offroad_max=30,
+                                      offroad_max=10,
                                       terminate_on_failure=True)
                                       
         completion_criterion = RouteCompletionTest(self.ego_vehicles[0], route=route)
@@ -549,7 +554,8 @@ class RouteScenario(BasicScenario):
 
         blocked_criterion = ActorSpeedAboveThresholdTest(self.ego_vehicles[0],
                                                          speed_threshold=0.1,
-                                                         below_threshold_max_time=180.0,
+                                                         #below_threshold_max_time=180.0,
+                                                         below_threshold_max_time=90.0,
                                                          terminate_on_failure=True,
                                                          name="AgentBlockedTest")
 

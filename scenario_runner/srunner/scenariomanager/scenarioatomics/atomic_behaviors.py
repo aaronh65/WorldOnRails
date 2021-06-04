@@ -2388,6 +2388,7 @@ class ScenarioTriggerer(AtomicBehavior):
         self._distance = distance
         self._blackboard_list = blackboard_list
         self._triggered_scenarios = []  # List of already done scenarios
+        self._triggered_scenarios_times = []
 
         self._current_index = 0
         self._route_length = len(self._route)
@@ -2441,7 +2442,7 @@ class ScenarioTriggerer(AtomicBehavior):
             if condition1 and condition2 and condition3:
                 _ = blackboard.set(black_var_name, True)
                 self._triggered_scenarios.append(black_var_name)
-
+                self._triggered_scenarios_times.append(GameTime.get_time())
                 if self._debug:
                     self._world.debug.draw_point(
                         scen_location + carla.Location(z=4),

@@ -34,6 +34,11 @@ class RouteIndexer():
 
         self._configs_list = list(self._configs_dict.items())
 
+    def get(self, idx):
+        assert 0 <= idx < len(self._configs_list), 'idx out of range'
+        config = self._configs_list[idx]
+        return copy.copy(config[1])
+
     def peek(self):
         return not (self._index >= len(self._configs_list))
 

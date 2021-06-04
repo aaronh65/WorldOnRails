@@ -18,6 +18,7 @@ import sys
 from srunner.scenariomanager.traffic_events import TrafficEventType
 
 from leaderboard.utils.checkpoint_tools import fetch_dict, save_dict, create_default_json_msg
+from leaderboard.utils.statistics_util import plot_performance
 
 PENALTY_COLLISION_PEDESTRIAN = 0.50
 PENALTY_COLLISION_VEHICLE = 0.60
@@ -98,7 +99,8 @@ class StatisticsManager(object):
 
     def set_route(self, route_id, index):
 
-        self._master_scenario = None
+        self._master_scenario = None # BasicScenario.Scenario
+        self._route_scenario = None
         route_record = RouteRecord()
         route_record.route_id = route_id
         route_record.index = index
@@ -117,9 +119,10 @@ class StatisticsManager(object):
         is only active when the simulation is active, to avoid statistic
         errors in case something breaks between simulations 
         """
-        self._master_scenario = scenario
+        self._route_scenario = scenario
+        self._master_scenario = scenario.scenario
 
-    def compute_route_statistics(self, config, duration_time_system=-1, duration_time_game=-1, failure=""):
+    def compute_route_statistics(self, config, duration_time_system=-1, duration_time_game=-1, failure="", checkpoint=None):
         """
         Compute the current statistics by evaluating all relevant scenario criteria
         """
@@ -134,6 +137,8 @@ class StatisticsManager(object):
         target_reached = False
         score_penalty = 1.0
         score_route = 0.0
+        score_route_list = []
+        infraction_list = [] # each elem is (time, TrafficEventType)
 
         route_record.meta['duration_system'] = duration_time_system
         route_record.meta['duration_game'] = duration_time_game
@@ -148,17 +153,22 @@ class StatisticsManager(object):
                 if node.list_traffic_events:
                     # analyze all traffic events
                     for event in node.list_traffic_events:
+                        if event.get_dict():
+                            event_dict = event.get_dict()
                         if event.get_type() == TrafficEventType.COLLISION_STATIC:
                             score_penalty *= PENALTY_COLLISION_STATIC
                             route_record.infractions['collisions_layout'].append(event.get_message())
+                            infraction_list.append((event_dict['time'], event.get_type()))
 
                         elif event.get_type() == TrafficEventType.COLLISION_PEDESTRIAN:
                             score_penalty *= PENALTY_COLLISION_PEDESTRIAN
                             route_record.infractions['collisions_pedestrian'].append(event.get_message())
+                            infraction_list.append((event_dict['time'], event.get_type()))
 
                         elif event.get_type() == TrafficEventType.COLLISION_VEHICLE:
                             score_penalty *= PENALTY_COLLISION_VEHICLE
                             route_record.infractions['collisions_vehicle'].append(event.get_message())
+                            infraction_list.append((event_dict['time'], event.get_type()))
 
                         elif event.get_type() == TrafficEventType.OUTSIDE_ROUTE_LANES_INFRACTION:
                             score_penalty *= (1 - event.get_dict()['percentage'] / 100)
@@ -167,6 +177,7 @@ class StatisticsManager(object):
                         elif event.get_type() == TrafficEventType.TRAFFIC_LIGHT_INFRACTION:
                             score_penalty *= PENALTY_TRAFFIC_LIGHT
                             route_record.infractions['red_light'].append(event.get_message())
+                            infraction_list.append((event_dict['time'], event.get_type()))
 
                         elif event.get_type() == TrafficEventType.ROUTE_DEVIATION:
                             route_record.infractions['route_dev'].append(event.get_message())
@@ -175,6 +186,7 @@ class StatisticsManager(object):
                         elif event.get_type() == TrafficEventType.STOP_INFRACTION:
                             score_penalty *= PENALTY_STOP
                             route_record.infractions['stop_infraction'].append(event.get_message())
+                            infraction_list.append((event_dict['time'], event.get_type()))
 
                         elif event.get_type() == TrafficEventType.VEHICLE_BLOCKED:
                             route_record.infractions['vehicle_blocked'].append(event.get_message())
@@ -186,6 +198,7 @@ class StatisticsManager(object):
                         elif event.get_type() == TrafficEventType.ROUTE_COMPLETION:
                             if not target_reached:
                                 if event.get_dict():
+                                    score_route_list = event.get_dict()['route_completed_list']
                                     score_route = event.get_dict()['route_completed']
                                 else:
                                     score_route = 0
@@ -195,6 +208,10 @@ class StatisticsManager(object):
         route_record.scores['score_penalty'] = score_penalty
         route_record.scores['score_composed'] = max(score_route*score_penalty, 0.0)
 
+        # plot per-route performance
+        if len(score_route_list) > 0:
+            plot_performance(score_route_list, infraction_list, checkpoint, self._route_scenario.scenario_triggerer, self._route_scenario.route_var_name_class_lookup)
+        
         # update status
         if target_reached:
             route_record.status = 'Completed'
