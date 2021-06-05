@@ -28,7 +28,7 @@ seg_weight: 0.05
 wide_crop_top: 48
 narr_crop_bottom: 80
 imagenet_pretrained: True
-log_wandb: True
+log_wandb: False
 noise_collect: False
 use_narr_cam: True
 multi_cam: True

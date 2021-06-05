@@ -21,7 +21,6 @@ python -m leaderboard.leaderboard_evaluator \
 --trafficManagerPort=${TM_PORT} \
 --debug=${DEBUG_CHALLENGE} \
 --repetitions=${REPETITIONS}
-#--privileged=${PRIVILEGED}
 
 echo "Done. See $CHECKPOINT_ENDPOINT for detailed results."
 

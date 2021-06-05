@@ -1,4 +1,5 @@
 import os
+import cv2
 import math
 import yaml
 import lmdb
@@ -13,9 +14,11 @@ from torch.distributions.categorical import Categorical
 
 from leaderboard.autoagents.autonomous_agent import AutonomousAgent, Track
 from utils import visualize_obs
+from pathlib import Path
 
 from rails.models import EgoModel, CameraModel
 from autoagents.waypointer import Waypointer
+from common.devkit_utils import dict_to_sns
 
 def get_entry_point():
     return 'ImageAgent'
@@ -36,6 +39,7 @@ class ImageAgent(AutonomousAgent):
 
         with open(path_to_conf_file, 'r') as f:
             config = yaml.safe_load(f)
+        self.config = dict_to_sns(config)
 
         for key, value in config.items():
             setattr(self, key, value)
@@ -60,6 +64,8 @@ class ImageAgent(AutonomousAgent):
         self.lane_change_counter = 0
         self.stop_counter = 0
 
+        self.initialized=False
+
     def destroy(self):
         if len(self.vizs) == 0:
             return
@@ -72,13 +78,22 @@ class ImageAgent(AutonomousAgent):
         
         del self.waypointer
         del self.image_model
+
+    def init(self):
+        if self.config.save_debug:
+            route_name = os.environ['ROUTE_NAME']
+            repetition = os.environ['REPETITION']
+            self.save_path = Path(f'{self.config.save_root}/data/{route_name}/{repetition}')
+            self.save_path.mkdir(parents=True, exist_ok=False)
+            print(self.save_path)
+            (self.save_path / 'debug').mkdir()
+        self.initialized=True
     
     def flush_data(self):
-
+        video = wandb.Video(np.stack(self.vizs).transpose((0,3,1,2)), fps=20, format='mp4')
         if self.log_wandb:
             wandb.log({
-                'vid': wandb.Video(np.stack(self.vizs).transpose((0,3,1,2)), fps=20, format='mp4')
-            })
+                'vid': video})
             
         self.vizs.clear()
 
@@ -96,6 +111,8 @@ class ImageAgent(AutonomousAgent):
         return sensors
 
     def run_step(self, input_data, timestamp):
+        if not self.initialized:
+            self.init()
         
         _, wide_rgb = input_data.get(f'Wide_RGB')
         _, narr_rgb = input_data.get(f'Narrow_RGB')
@@ -159,14 +176,20 @@ class ImageAgent(AutonomousAgent):
         
         rgb = np.concatenate([wide_rgb, narr_rgb[...,:3]], axis=1)
         
-        self.vizs.append(visualize_obs(rgb, 0, (steer, throt, brake), spd, cmd=cmd_value+1))
+        viz = visualize_obs(rgb, 0, (steer, throt, brake), spd, cmd=cmd_value+1)
+        self.vizs.append(viz)
+        if self.config.save_debug and self.num_frames % 5 == 0:
+            frame = self.num_frames // 5
+            save_path = self.save_path / 'debug' / f'{frame:06d}.png'
+            cv2.imwrite(str(save_path), cv2.cvtColor(viz, cv2.COLOR_RGB2BGR))
 
         if len(self.vizs) > 1000:
             self.flush_data()
 
         self.num_frames += 1
 
-        return carla.VehicleControl(steer=steer, throttle=throt, brake=brake)
+        #return carla.VehicleControl(steer=steer, throttle=throt, brake=brake)
+        return carla.VehicleControl(steer=0, throttle=1, brake=False)
     
     def _lerp(self, v, x):
         D = v.shape[0]

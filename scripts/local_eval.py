@@ -32,6 +32,7 @@ save_root = Path(f'{prefix}/wor/{algo}/{suffix}')
 save_root.mkdir(parents=True,exist_ok=True)
 (save_root / 'plots').mkdir(exist_ok=True)
 (save_root / 'logs').mkdir(exist_ok=True)
+(save_root / 'data').mkdir(exist_ok=True)
 
 # agent-specific config
 config_path = f'{project_root}/config.yaml'
