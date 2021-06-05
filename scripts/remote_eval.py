@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('-D', '--debug', action='store_true')
 parser.add_argument('-G', '--gpus', type=int, default=1)
-parser.add_argument('--agent', type=str, default='lbc/src/auto_pilot.py')
+parser.add_argument('--agent', type=str, default='image_agent.py')
 parser.add_argument('--split', type=str, default='devtest', 
         choices=['devtest','testing','training','debug'])
 parser.add_argument('--repetitions', type=int, default=1)
@@ -22,7 +22,7 @@ parser.add_argument('--id', type=str, default=datetime.now().strftime("%Y%m%d_%H
 parser.add_argument('--port', type=int, default=2000)
 parser.add_argument('--save_data', action='store_true')
 parser.add_argument('--save_debug', action='store_true')
-parser.add_argument('--config_path', type=str)
+parser.add_argument('--config_path', type=str, default='config.yaml')
 args = parser.parse_args()
 
 assert args.data_root != '/data/aaronhua', 'should not do heavy I/O to /data'
@@ -39,7 +39,7 @@ project_root = os.environ['PROJECT_ROOT']
 # save root
 tokens = args.agent.split('.')[0].split('/')
 appr, algo = tokens[0], tokens[-1]
-prefix = '/data/aaronhua/wor/data' if args.save_data else '/data/aaronhua/leaderboard/benchmark'
+prefix = f'{args.data_root}/wor/data' if args.save_data else f'{args.data_root}/leaderboard/benchmark'
 suffix = f'debug/{args.id}' if args.debug else args.id
 save_root = Path(f'{prefix}/wor/{algo}/{suffix}')
 save_root.mkdir(parents=True,exist_ok=True)
