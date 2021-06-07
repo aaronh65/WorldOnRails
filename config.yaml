@@ -34,6 +34,6 @@ use_narr_cam: True
 multi_cam: True
 all_speeds: True
 ego_data_dir: /data/aaronhua/wor/data/ego/test
-ego_model_dir: /data/aaronhua/wor/training/ego/base/ego_model.th
-main_data_dir: /data/aaronhua/wor/data/main/test
-main_model_dir: /data/aaronhua/wor/training/main/base/main_model.th
+ego_model_dir: /data/aaronhua/wor/training/ego/dian/ego_model.th
+main_data_dir: /data/aaronhua/wor/data/main/test_01
+main_model_dir: /data/aaronhua/wor/training/main/dian/main_model_10.th

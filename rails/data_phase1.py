@@ -10,7 +10,7 @@ def main(args):
     route = 'assets/routes_all.xml'
     # route = 'assets/routes_training/route_10.xml'
 
-    args.agent = 'autoagents/collector_agents/q_collector' # Use 'viz_collector' for collecting pretty images
+    args.agent = 'autoagents/collector_agents/q_collector_image' # Use 'viz_collector' for collecting pretty images
     args.agent_config = 'config.yaml'
     #args.agent_config = 'experiments/config_nocrash.yaml'
 

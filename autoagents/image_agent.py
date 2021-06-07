@@ -188,8 +188,7 @@ class ImageAgent(AutonomousAgent):
 
         self.num_frames += 1
 
-        #return carla.VehicleControl(steer=steer, throttle=throt, brake=brake)
-        return carla.VehicleControl(steer=0, throttle=1, brake=False)
+        return carla.VehicleControl(steer=steer, throttle=throt, brake=brake)
     
     def _lerp(self, v, x):
         D = v.shape[0]
