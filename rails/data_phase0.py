@@ -40,7 +40,7 @@ if __name__ == '__main__':
     # parser.add_argument("--agent-config", type=str, help="Path to Agent's configuration file", default="")
     parser.add_argument('--repetitions',
                         type=int,
-                        default=100,
+                        default=10,
                         help='Number of repetitions per route.')
     parser.add_argument("--track", type=str, default='MAP', help="Participation track: SENSORS, MAP")
     parser.add_argument('--resume', type=bool, default=False, help='Resume execution from last checkpoint?')

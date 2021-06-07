@@ -115,6 +115,7 @@ class MainDataset(Dataset):
 
         # Load dataset
         for full_path in glob.glob(f'{data_dir}/**'):
+            print(full_path)
             txn = lmdb.open(
                 full_path,
                 max_readers=1, readonly=True,

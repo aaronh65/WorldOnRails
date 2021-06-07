@@ -4,7 +4,7 @@ from leaderboard.leaderboard_evaluator import LeaderboardEvaluator
 from leaderboard.utils.statistics_manager import StatisticsManager
 
 #@ray.remote(num_cpus=1./8, num_gpus=1./4, max_restarts=100, max_task_retries=-1)
-@ray.remote(num_cpus=1./2, num_gpus=1./2, max_restarts=100, max_task_retries=-1)
+@ray.remote(num_cpus=1., num_gpus=1., max_restarts=100, max_task_retries=-1)
 class ScenarioRunner():
     def __init__(self, args, scenario_class, scenario, route, checkpoint='simulation_results.json', town=None, port=2000, tm_port=2002, debug=False):
         args = deepcopy(args)
