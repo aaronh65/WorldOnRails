@@ -22,6 +22,11 @@ def plot_metrics(args, metrics, routes, plot_dir, split):
     plot_labels = [infraction.replace('_', '\n') for infraction in infraction_types]
     plot_labels = [f'{label}\n{penalty}' for label, penalty in zip(plot_labels, penalties)]
 
+    infraction_counts = dict()
+    for infraction in infraction_types:
+        
+        pass
+
     # on the bar plot, each infraction type occupes 2 "widths"
     # first width is for the bar showing # of infraction occurences for that type
     # second width is for spacing between infraction types
@@ -137,12 +142,14 @@ def main(args):
     log_fnames = sorted([os.path.join(log_dir, fname) for fname in os.listdir(log_dir) if fname.startswith('route')])
 
     routes = []
+    route_infractions = {}
 
     for fname in log_fnames:
         with open(fname) as f:
             log = json.load(f)
         route = fname.split('/')[-1].split('.')[0]
         routes.append(route)
+        route_infractions[route] = {}
         metrics[route] = {}
         records = log['_checkpoint']['records']
 
@@ -165,6 +172,24 @@ def main(args):
             metrics[route][f'{inf_type} std'] = np.std(num_infractions)
             metrics[route][f'{inf_type} max'] = np.amax(num_infractions)
             metrics[route][f'{inf_type} min'] = np.amin(num_infractions)
+            route_infractions[route][inf_type] = sum(num_infractions)
+
+    infraction_counts = {inf_type: int(sum([route_infractions[route][inf_type] for route in route_infractions.keys()])) for inf_type in infraction_types}
+    
+    text = ''
+    pie_labels, pie_counts = [], []
+    for inf_type, inf_count in infraction_counts.items():
+        if inf_count == 0:
+            text += f'{inf_type}\n'
+        else:
+            pie_labels.append(f'{inf_type} ({inf_count})')
+            pie_counts.append(inf_count)
+
+    fig, ax = plt.subplots()
+    ax.text(0.75, 0, text, transform=ax.transAxes, fontsize='x-small')
+    ax.pie(pie_counts, labels=pie_labels, autopct='%1.1f%%')
+    ax.axis('equal')
+    plt.show()
 
     plot_metrics(args, metrics, routes, plot_dir, split)
 
