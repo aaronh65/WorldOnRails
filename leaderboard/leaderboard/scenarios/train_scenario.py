@@ -60,6 +60,7 @@ class TrainScenario(RouteScenario):
         # Overwrite
         self.config = config
         self.list_scenarios = []
+        self.route_var_name_class_lookup = {}
         
         # Set route
         self._set_route()
@@ -189,6 +190,7 @@ class TrainScenario(RouteScenario):
                                                                           ego_vehicle.get_transform(),
                                                                           'hero')]
             route_var_name = "ScenarioRouteNumber{}".format(scenario_number)
+            self.route_var_name_class_lookup[route_var_name] = scenario_class.__name__
             scenario_configuration.route_var_name = route_var_name
             try:
                 scenario_instance = scenario_class(world, [ego_vehicle], scenario_configuration,
