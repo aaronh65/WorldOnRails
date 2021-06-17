@@ -136,13 +136,13 @@ class BellmanUpdater(object):
         batch_shape = lbl.shape[:-3]
 
         # Waypoint reward
-        #brak_rews = torch.tensor((vehicle>0)|(pedestrian>0)|(red>0), dtype=torch.float32).to(BellmanUpdater._device)
-        brak_rews = torch.tensor((vehicle>0)|(pedestrian>0), dtype=torch.float32).to(BellmanUpdater._device)
+        brak_rews = torch.tensor((vehicle>0)|(pedestrian>0)|(red>0), dtype=torch.float32).to(BellmanUpdater._device)
+        #brak_rews = torch.tensor((vehicle>0)|(pedestrian>0), dtype=torch.float32).to(BellmanUpdater._device)
         brak_rews *= BellmanUpdater._brak_rew
 
         # x2 hack to still reward zero-speed
         stop_rews = BellmanUpdater.to_dense(torch.tensor((vehicle>0)|(pedestrian>0),dtype=torch.float32).to(BellmanUpdater._device), batch_shape, target_speed=0, target_orient='all')
-        #stop_rews += BellmanUpdater.to_dense(torch.tensor(red>0,dtype=torch.float32).to(BellmanUpdater._device), batch_shape, target_speed=0, target_orient=red_tgt_orient)
+        stop_rews += BellmanUpdater.to_dense(torch.tensor(red>0,dtype=torch.float32).to(BellmanUpdater._device), batch_shape, target_speed=0, target_orient=red_tgt_orient)
         stop_rews *= BellmanUpdater._stop_rew
 
         # DEBUG

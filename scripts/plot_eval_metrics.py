@@ -22,11 +22,6 @@ def plot_metrics(args, metrics, routes, plot_dir, split):
     plot_labels = [infraction.replace('_', '\n') for infraction in infraction_types]
     plot_labels = [f'{label}\n{penalty}' for label, penalty in zip(plot_labels, penalties)]
 
-    infraction_counts = dict()
-    for infraction in infraction_types:
-        
-        pass
-
     # on the bar plot, each infraction type occupes 2 "widths"
     # first width is for the bar showing # of infraction occurences for that type
     # second width is for spacing between infraction types
@@ -144,6 +139,10 @@ def main(args):
     routes = []
     route_infractions = {}
 
+    mean_dscores = []
+    std_dscores = []
+    mean_rcscores = []
+    std_rcscores = []
     for fname in log_fnames:
         with open(fname) as f:
             log = json.load(f)
@@ -164,6 +163,8 @@ def main(args):
         metrics[route]['route completion std'] = np.std(rcscores)
         metrics[route]['route completion max'] = np.amax(rcscores)
         metrics[route]['route completion min'] = np.amin(rcscores)
+        mean_dscores.append(np.mean(dscores))
+        mean_rcscores.append(np.mean(rcscores))
 
         # infractions
         for inf_type in infraction_types:
@@ -176,20 +177,35 @@ def main(args):
 
     infraction_counts = {inf_type: int(sum([route_infractions[route][inf_type] for route in route_infractions.keys()])) for inf_type in infraction_types}
     
+    dscore_mean = np.mean([metrics[route]['driving score mean'] for route in routes])
+    dscore_std = np.std([metrics[route]['driving score mean'] for route in routes])
+    rcscore_mean = np.mean([metrics[route]['route completion mean'] for route in routes])
+    rcscore_std = np.std([metrics[route]['route completion mean'] for route in routes])
+
     text = ''
     pie_labels, pie_counts = [], []
+    explode = []
+    end_conditions = ['route_timeout', 'vehicle_blocked', 'route_dev', 'outside_route_lanes']
     for inf_type, inf_count in infraction_counts.items():
-        if inf_count == 0:
-            text += f'{inf_type}\n'
+        if inf_count == 0 or inf_type in end_conditions:
+            text += f'{inf_type} ({inf_count})\n'
         else:
             pie_labels.append(f'{inf_type} ({inf_count})')
             pie_counts.append(inf_count)
+            expl = 0.05 if inf_type in end_conditions else 0
+            explode.append(expl)
 
     fig, ax = plt.subplots()
-    ax.text(0.75, 0, text, transform=ax.transAxes, fontsize='x-small')
-    ax.pie(pie_counts, labels=pie_labels, autopct='%1.1f%%')
+    ax.text(1.0, 0, text, transform=ax.transAxes, fontsize='xx-small')
+    ax.pie(pie_counts, labels=pie_labels, autopct='%1.1f%%', explode=explode)
     ax.axis('equal')
-    plt.show()
+    #title = f'DS:{dscore_mean:.1f}/{dscore_std:.1f}   RC:{rcscore_mean:.1f}/{rcscore_std:.1f}'
+    pm = r'$\pm$'
+    title = f'RC:{int(rcscore_mean)}{pm}{int(rcscore_std)}  DS:{int(dscore_mean)}{pm}{int(dscore_std)}'
+    ax.set_title(title)
+    #plt.tight_layout()
+    plt.savefig(f'{plot_dir}/infraction_pie.png', bbox_inches='tight')
+    plt.clf()
 
     plot_metrics(args, metrics, routes, plot_dir, split)
 
