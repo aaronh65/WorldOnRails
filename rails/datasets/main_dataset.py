@@ -252,7 +252,8 @@ class RemoteMainDataset(MainDataset):
 
 if __name__ == '__main__':
     
-    dataset = MainDataset('/ssd2/dian/challenge_data/main_trajs_nocrash_nonoise', '/home/dianchen/carla_challenge/experiments/config_nocrash.yaml')
+    #dataset = MainDataset('/ssd2/dian/challenge_data/main_trajs_nocrash_nonoise', '/home/dianchen/carla_challenge/experiments/config_nocrash.yaml')
+    dataset = MainDataset('/data/aaronhua/wor/data/main/dian', '/home/aaronhua/WorldOnRails/config.yaml')
     
     # wide_rgb, wide_sem, narr_rgb, lbls, locs, rots, spds, cmd = dataset[30]
     

@@ -101,6 +101,7 @@ class QCollectorImage(AutonomousAgent):
 
         self.prev_steer = 0
         self.lane_change_counter = 0
+        self.lane_changed=None
         self.stop_counter = 0
 
 
