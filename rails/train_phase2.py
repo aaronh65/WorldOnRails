@@ -8,7 +8,8 @@ from .logger import Logger
 def main(args):
     
     rails = RAILS(args)
-    data = data_loader('main', args)
+    train_data = data_loader('main', args, mode='train')
+    val_data = data_loader('main', args, mode='val')
     logger = Logger('carla_train_phase2', args)
     save_dir = logger.save_dir
     
@@ -24,13 +25,26 @@ def main(args):
 
     global_it = 0
     for epoch in range(start,start+args.num_epoch):
-        for wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds in tqdm.tqdm(data, desc='Epoch {}'.format(epoch)):
+        for wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds in tqdm.tqdm(train_data, desc='Epoch {}'.format(epoch)):
             opt_info = rails.train_main(wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds)
             
             if global_it % args.num_per_log == 0:
                 logger.log_main_info(global_it, opt_info)
         
             global_it += 1
+
+        val_info = {'epoch': epoch, 'val_seg_loss': [], 'val_act_loss': []}
+        rails.main_model.eval()
+        for wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds in tqdm.tqdm(val_data, desc='Epoch {}'.format(epoch)):
+            opt_info = rails.val_main(wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds)
+            val_info['val_seg_loss'].append(opt_info['seg_loss'])
+            val_info['val_act_loss'].append(opt_info['act_loss'])
+        val_info['val_seg_loss'] = np.mean(val_info['val_seg_loss'])
+        val_info['val_act_loss'] = np.mean(val_info['val_act_loss'])
+        wandb.log(val_info)
+        rails.main_model.train()
+            
+
     
         # Save model
         if (epoch+1) % args.num_per_save == 0:
@@ -43,7 +57,8 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('--resume', default=None)
+    #parser.add_argument('--resume', default=None)
+    parser.add_argument('--resume', default='/data/aaronhua/wor/training/main/dian/main_model_10.th')
     
     #parser.add_argument('--data-dir', default='/data/aaronhua/wor/data/main/old2')
     parser.add_argument('--data-dir', default='/scratch/aaronhua/wor/data/main/test')

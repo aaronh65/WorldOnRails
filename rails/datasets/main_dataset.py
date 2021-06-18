@@ -88,7 +88,7 @@ class VisualizationDataset(Dataset):
 
 
 class MainDataset(Dataset):
-    def __init__(self, data_dir, config_path):
+    def __init__(self, data_dir, config_path, mode=''):
         super().__init__()
 
         with open(config_path, 'r') as f:
@@ -114,28 +114,38 @@ class MainDataset(Dataset):
         self.file_map = dict()
 
         # Load dataset
-        for full_path in glob.glob(f'{data_dir}/**'):
+        bad_paths = ''
+        for i, full_path in enumerate(glob.glob(f'{data_dir}/**')):
             print(full_path)
-            txn = lmdb.open(
-                full_path,
-                max_readers=1, readonly=True,
-                lock=False, readahead=False, meminit=False).begin(write=False)
-            
-            n = int(txn.get('len'.encode()))
-            if n < self.T+1:
-                print (full_path, ' is too small. consider deleting it.')
-                txn.__exit__()
-            else:
-                offset = self.num_frames
-                for i in range(n-self.T):
-                    self.num_frames += 1
-                    for j in range(len(self.camera_yaws)):
-                        self.txn_map[(offset+i)*len(self.camera_yaws)+j] = txn
-                        self.idx_map[(offset+i)*len(self.camera_yaws)+j] = i
-                        self.yaw_map[(offset+i)*len(self.camera_yaws)+j] = j
-                        self.file_map[(offset+i)*len(self.camera_yaws)+j] = full_path
+            if (mode == 'val' and i % 10 != 9) or (mode == 'train' and i % 10 == 9):
+                continue
+
+            try:
+                txn = lmdb.open(
+                    full_path,
+                    max_readers=1, readonly=True,
+                    lock=False, readahead=False, meminit=False).begin(write=False)
+                
+                n = int(txn.get('len'.encode()))
+                if n < self.T+1:
+                    print (full_path, ' is too small. consider deleting it.')
+                    txn.__exit__()
+                else:
+                    offset = self.num_frames
+                    for i in range(n-self.T):
+                        self.num_frames += 1
+                        for j in range(len(self.camera_yaws)):
+                            self.txn_map[(offset+i)*len(self.camera_yaws)+j] = txn
+                            self.idx_map[(offset+i)*len(self.camera_yaws)+j] = i
+                            self.yaw_map[(offset+i)*len(self.camera_yaws)+j] = j
+                            self.file_map[(offset+i)*len(self.camera_yaws)+j] = full_path
+
+            except Exception as e:
+                bad_paths += f'{str(full_path)}\n'
 
         print(f'{data_dir}: {self.num_frames} frames (x{len(self.camera_yaws)})')
+        print('consider deleting these directories')
+        print(bad_paths)
         
     def __len__(self):
         if self.multi_cam:
