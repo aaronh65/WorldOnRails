@@ -104,6 +104,11 @@ class QCollectorImage(AutonomousAgent):
         self.lane_changed=None
         self.stop_counter = 0
 
+        self.rstring = _random_string()
+        #os.environ['SAVE_ROOT'] = os.path.join(self.main_data_dir, self.rstring)
+        os.environ['SAVE_ROOT'] = self.main_data_dir
+        os.environ['ROUTE_NAME'] = ''
+        os.environ['REPETITION'] = self.rstring
 
     def destroy(self):
         if len(self.lbls) == 0:
@@ -119,7 +124,7 @@ class QCollectorImage(AutonomousAgent):
             })
 
         # Save data
-        data_path = os.path.join(self.main_data_dir, _random_string())
+        data_path = os.path.join(self.main_data_dir, self.rstring)
         print ('Saving to {}'.format(data_path))
 
         lmdb_env = lmdb.open(data_path, map_size=int(1e10))
@@ -382,6 +387,8 @@ class QCollectorImage(AutonomousAgent):
 
         steer, throt, brake = self.post_process(steer, throt, brake_prob, spd, cmd_value)
 
+
+        #steer, throt, brake = (np.random.random(), 0.75, 0)
         return steer, throt, brake
         #return carla.VehicleControl(steer=steer, throttle=throt, brake=brake)
 
@@ -407,6 +414,7 @@ class QCollectorImage(AutonomousAgent):
 
         # if cmd in [4,5]:
         #     steer = min(max(steer, -0.4), 0.4) # no crazy steerings when lane changing
+
 
         return steer, throt, brake
     

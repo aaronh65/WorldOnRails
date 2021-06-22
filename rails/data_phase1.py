@@ -1,3 +1,5 @@
+import os
+import yaml
 from runners import ScenarioRunner
 
 def main(args):
@@ -16,6 +18,11 @@ def main(args):
 
     # args.agent = 'autoagents/collector_agents/lidar_q_collector'
     # args.agent_config = 'config_lidar.yaml'
+    record=''
+    if args.record:
+        with open(args.agent_config, 'r') as f:
+            config = yaml.safe_load(f)
+        record = config['main_data_dir']
 
     jobs = []
     for i in range(args.num_runners):
@@ -24,8 +31,9 @@ def main(args):
         town = towns.get(i, 'Town03')
         port = (i+1) * args.port
         tm_port = port + 2
-        checkpoint = f'results/{i:02d}_{args.checkpoint}'
-        runner = ScenarioRunner.remote(args, scenario_class, scenario, route, checkpoint=checkpoint, town=town, port=port, tm_port=tm_port)
+        #checkpoint = f'results/{i:02d}_{args.checkpoint}'
+        checkpoint = os.path.join(config['main_data_dir'], 'results.json')
+        runner = ScenarioRunner.remote(args, scenario_class, scenario, route, checkpoint=checkpoint, town=town, port=port, tm_port=tm_port, record=record)
         jobs.append(runner.run.remote())
     
     ray.wait(jobs, num_returns=args.num_runners)
@@ -61,7 +69,7 @@ if __name__ == '__main__':
     parser.add_argument("--checkpoint", type=str,
                         default='simulation_results.json',
                         help="Path to checkpoint used for saving statistics and resuming")
-    
+    parser.add_argument('--record', action='store_true')    
     args = parser.parse_args()
     
     main(args)

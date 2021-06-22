@@ -17,6 +17,7 @@ import argparse
 from argparse import RawTextHelpFormatter
 from datetime import datetime
 from distutils.version import LooseVersion
+from pathlib import Path
 import importlib
 import os
 import pkg_resources
@@ -27,6 +28,7 @@ import signal
 from srunner.scenariomanager.carla_data_provider import *
 from srunner.scenariomanager.timer import GameTime
 from srunner.scenariomanager.watchdog import Watchdog
+
 
 from leaderboard.scenarios.scenario_manager import ScenarioManager
 from leaderboard.scenarios.route_scenario import RouteScenario
@@ -97,9 +99,7 @@ class LeaderboardEvaluator(object):
 
         # Load agent
         module_name = os.path.basename(args.agent).split('.')[0]
-        print(module_name)
         sys.path.insert(0, os.path.dirname(args.agent))
-        print(args.agent)
         self.module_agent = importlib.import_module(module_name)
 
         # Create the ScenarioManager
@@ -287,6 +287,11 @@ class LeaderboardEvaluator(object):
             self.agent_instance = getattr(self.module_agent, agent_class_name)(args.agent_config)
             config.agent = self.agent_instance
 
+            # EXPERIMENTAL - for recording
+            args.checkpoint = os.path.join(os.environ['SAVE_ROOT'], 'results.json')
+            #Path(Path(args.checkpoint).parent).mkdir(parents=True, exist_ok=False)
+            self.statistics_manager.clear_record(args.checkpoint)
+
             # Check and store the sensors
             if not self.sensors:
                 self.sensors = self.agent_instance.sensors()
@@ -341,13 +346,19 @@ class LeaderboardEvaluator(object):
 
             # Load scenario and run it
             if args.record:
-                self.client.start_recorder("{}/{}_rep{}.log".format(args.record, config.name, config.repetition_index))
+                path = Path(os.path.join(args.record, self.agent_instance.rstring))
+                path.mkdir(exist_ok=True, parents=True)
+                self.client.start_recorder("{}/record.log".format(str(path)))
+                print('started recording at', "{}/record.log".format(str(path)))
+
             self.manager.load_scenario(scenario, self.agent_instance, config.repetition_index)
-            route_num = int(config.name.split('_')[-1])
-            route_name = f'route_{route_num:02d}'
-            repetition = f'repetition_{config.repetition_index:02d}'
-            os.environ['ROUTE_NAME'] = route_name
-            os.environ["REPETITION"] = repetition
+
+            if 'q_collector' not in args.agent:
+                route_num = int(config.name.split('_')[-1])
+                route_name = f'route_{route_num:02d}'
+                repetition = f'repetition_{config.repetition_index:02d}'
+                os.environ['ROUTE_NAME'] = route_name
+                os.environ["REPETITION"] = repetition
 
         except Exception as e:
             # The scenario is wrong -> set the ejecution to crashed and stop
@@ -393,8 +404,9 @@ class LeaderboardEvaluator(object):
             print("\033[1m> Stopping the route\033[0m")
             self.manager.stop_scenario()
             self._register_statistics(config, args.checkpoint, entry_status, crash_message)
-
+            #print('RECORD', args.record)
             if args.record:
+                print('stopping recording')
                 self.client.stop_recorder()
 
             # Remove all actors

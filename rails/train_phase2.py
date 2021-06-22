@@ -39,6 +39,7 @@ def main(args):
             opt_info = rails.val_main(wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds)
             val_info['val_seg_loss'].append(opt_info['seg_loss'])
             val_info['val_act_loss'].append(opt_info['act_loss'])
+            val_info['val_loss'].append(opt_info['loss'])
         val_info['val_seg_loss'] = np.mean(val_info['val_seg_loss'])
         val_info['val_act_loss'] = np.mean(val_info['val_act_loss'])
         wandb.log(val_info)
