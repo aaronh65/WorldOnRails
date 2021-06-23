@@ -5,12 +5,12 @@ from torch.utils.data import DataLoader, WeightedRandomSampler
 from .ego_dataset import EgoDataset
 from .main_dataset import LabeledMainDataset
 
-def data_loader(data_type, config):
+def data_loader(data_type, config, mode=''):
 
     if data_type == 'ego':
         dataset = EgoDataset(config.data_dir, T=config.ego_traj_len)
     elif data_type == 'main':
-        dataset = LabeledMainDataset(config.data_dir, config.config_path)
+        dataset = LabeledMainDataset(config.data_dir, config.config_path, mode=mode)
     else:
         raise NotImplementedError(f'Unknown data type {data_type}')
 

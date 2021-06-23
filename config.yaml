@@ -28,12 +28,12 @@ seg_weight: 0.05
 wide_crop_top: 48
 narr_crop_bottom: 80
 imagenet_pretrained: True
-log_wandb: False
+log_wandb: True
 noise_collect: False
 use_narr_cam: True
 multi_cam: True
 all_speeds: True
 ego_data_dir: /data/aaronhua/wor/data/ego/test
 ego_model_dir: /data/aaronhua/wor/training/ego/dian/ego_model.th
-main_data_dir: /data/aaronhua/wor/data/main/test_01
+main_data_dir: /ssd1/aaronhua/wor/data/main/dian_tl
 main_model_dir: /data/aaronhua/wor/training/main/dian/main_model_10.th

@@ -25,15 +25,19 @@ def main(args):
 
     global_it = 0
     for epoch in range(start,start+args.num_epoch):
+
+        # train
         for wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds in tqdm.tqdm(train_data, desc='Epoch {}'.format(epoch)):
             opt_info = rails.train_main(wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds)
+            opt_info['epoch'] = epoch
             
             if global_it % args.num_per_log == 0:
-                logger.log_main_info(global_it, opt_info)
+                logger.log_main_info(global_it, opt_info, mode='train')
         
             global_it += 1
 
-        val_info = {'epoch': epoch, 'val_seg_loss': [], 'val_act_loss': []}
+        # val
+        val_info = {'epoch': epoch, 'val_seg_loss': [], 'val_act_loss': [], 'val_loss': []}
         rails.main_model.eval()
         for wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds in tqdm.tqdm(val_data, desc='Epoch {}'.format(epoch)):
             opt_info = rails.val_main(wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds)
@@ -42,10 +46,13 @@ def main(args):
             val_info['val_loss'].append(opt_info['loss'])
         val_info['val_seg_loss'] = np.mean(val_info['val_seg_loss'])
         val_info['val_act_loss'] = np.mean(val_info['val_act_loss'])
-        wandb.log(val_info)
+        val_info['val_loss'] = np.mean(val_info['val_loss'])
+        opt_info.pop('seg_loss')
+        opt_info.pop('act_loss')
+        opt_info.pop('loss')
+        val_info.update(opt_info)
+        logger.log_main_info(global_it, val_info, mode='val')
         rails.main_model.train()
-            
-
     
         # Save model
         if (epoch+1) % args.num_per_save == 0:
@@ -62,7 +69,8 @@ if __name__ == '__main__':
     parser.add_argument('--resume', default='/data/aaronhua/wor/training/main/dian/main_model_10.th')
     
     #parser.add_argument('--data-dir', default='/data/aaronhua/wor/data/main/old2')
-    parser.add_argument('--data-dir', default='/scratch/aaronhua/wor/data/main/test')
+    #parser.add_argument('--data-dir', default='/scratch/aaronhua/wor/data/main/test')
+    parser.add_argument('--data-dir', default='/ssd0/aaronhua/wor/data/main/dian')
     parser.add_argument('--config-path', default='config.yaml')
     parser.add_argument('--device', choices=['cpu', 'cuda'], default='cuda')
     
@@ -70,11 +78,11 @@ if __name__ == '__main__':
     parser.add_argument('--fps', type=float, default=20)
     parser.add_argument('--num-repeat', type=int, default=4)    # Should be consistent with autoagents/collector_agents/config.yaml
 
-    parser.add_argument('--num-workers', type=int, default=8)
+    parser.add_argument('--num-workers', type=int, default=4)
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--num-epoch', type=int, default=20)
-    parser.add_argument('--lr', type=float, default=3e-4)
-    parser.add_argument('--weight-decay', type=float, default=3e-5)
+    parser.add_argument('--lr', type=float, default=3e-5)
+    parser.add_argument('--weight-decay', type=float, default=0)
     
     parser.add_argument('--num-per-log', type=int, default=100, help='per iter')
     parser.add_argument('--num-per-save', type=int, default=1, help='per epoch')

@@ -49,8 +49,8 @@ class Logger:
         opt_info.update({'it': it, 'viz': wandb.Image(plt)})
         wandb.log(opt_info)
         plt.close('all')
-        
-    def log_main_info(self, it, opt_info):
+
+    def log_main_info(self, it, opt_info, mode=''):
         
         wide_rgb = opt_info.pop('wide_rgb')
         narr_rgb = opt_info.pop('narr_rgb')
@@ -75,7 +75,7 @@ class Logger:
         ax3.imshow(pred_act_prob);      ax3.set_title(f'(pred) brake: {pred_act_brak:.3f}')
         ax6.imshow(act_prob);           ax6.set_title(f'(gt) brake: {act_brak:.3f}')
 
-        opt_info.update({'it': it, 'viz': wandb.Image(plt)})
+        opt_info.update({f'it': it, f'{mode}_image': wandb.Image(plt)})
         wandb.log(opt_info)
         plt.close('all')
 

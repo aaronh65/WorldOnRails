@@ -100,6 +100,7 @@ class RAILS:
         return dict(
             act_loss=float(act_loss),
             seg_loss=float(seg_loss),
+            loss=float(loss),
             gt_seg=to_numpy(wide_sems[0]),
             pred_seg  =to_numpy(wide_seg_outputs[0]).argmax(0),
             cmd     =int(cmds[0]),
@@ -152,11 +153,6 @@ class RAILS:
 
         loss = act_loss + self.seg_weight * seg_loss
         
-        # Backpropogate
-        self.main_optim.zero_grad()
-        loss.backward()
-        self.main_optim.step()
-        
         if self.all_speeds:
             act_prob      = BellmanUpdater._batch_lerp(act_probs[0,int(cmds[0])].permute(1,0), spds[0:1], min_val=BellmanUpdater._min_speeds, max_val=BellmanUpdater._max_speeds)
             pred_act_prob = BellmanUpdater._batch_lerp(F.softmax(act_outputs[0,int(cmds[0])],dim=1).permute(1,0), spds[0:1], min_val=BellmanUpdater._min_speeds, max_val=BellmanUpdater._max_speeds)
@@ -167,6 +163,7 @@ class RAILS:
         return dict(
             act_loss=float(act_loss),
             seg_loss=float(seg_loss),
+            loss=float(loss),
             gt_seg=to_numpy(wide_sems[0]),
             pred_seg  =to_numpy(wide_seg_outputs[0]).argmax(0),
             cmd     =int(cmds[0]),
