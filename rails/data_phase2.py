@@ -35,7 +35,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--data-dir', default='/data3/aaronhua/wor/data/main/dian')
+    parser.add_argument('--data-dir', default='/data/aaronhua/wor/data/main/dian')
     parser.add_argument('--config-path', default='config.yaml')
     parser.add_argument('--device', choices=['cpu', 'cuda'], default='cuda')
 
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('--num-repeat', type=int, default=4)    # Should be consistent with autoagents/collector_agents/config.yaml
 
     parser.add_argument('--num-workers', type=int, default=12)
-    parser.add_argument('--ego-traj-len', type=int, default=5)
+    parser.add_argument('--ego-traj-len', type=int, default=12)
     #parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--num-epoch', type=int, default=100)

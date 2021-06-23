@@ -15,7 +15,8 @@ num_repeat: 4
 #num_ignore_first: 50
 num_ignore_first: 10
 num_per_flush: 10000
-num_plan: 5
+#num_plan: 5
+num_plan: 12
 thro_rew: 1.0
 brak_rew: 5.0
 stop_rew: 0.1
@@ -35,5 +36,5 @@ multi_cam: True
 all_speeds: True
 ego_data_dir: /data/aaronhua/wor/data/ego/test
 ego_model_dir: /data/aaronhua/wor/training/ego/dian/ego_model.th
-main_data_dir: /ssd1/aaronhua/wor/data/main/dian_tl
+main_data_dir: /data/aaronhua/wor/data/main/dian
 main_model_dir: /data/aaronhua/wor/training/main/dian/main_model_10.th
