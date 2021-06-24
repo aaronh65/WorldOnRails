@@ -38,6 +38,12 @@ class RAILS:
         self.main_optim = optim.Adam(self.main_model.parameters(), lr=args.lr)
 
         BellmanUpdater.setup(config, self.ego_model, device=self.device)
+
+        # EXPERIMENTAL
+        if hasattr(self, 'use_expert') and self.use_expert:
+            config['main_model_dir'] = config['exp_model_dir']
+            self.expert_model = CameraModel(config).to(args.device)
+            self.expert_model.eval()
         
     def main_model_state_dict(self):
         if self.multi_gpu:
@@ -59,31 +65,62 @@ class RAILS:
         act_probs = F.softmax(act_vals/self.temperature, dim=3)
         
         if self.use_narr_cam:
-            act_outputs, wide_seg_outputs, narr_seg_outputs = self.main_model(wide_rgbs, narr_rgbs, spd=None if self.all_speeds else spds)
+            act_outputs, wide_seg_outputs, narr_seg_outputs = self.main_model(
+                    wide_rgbs, narr_rgbs, spd=None if self.all_speeds else spds)
+            if self.use_expert:
+                with torch.no_grad():
+                    act_outputs_exp, wide_seg_outputs_exp, narr_seg_outputs_exp = self.expert_model(
+                            wide_rgbs, narr_rgbs, spd=None if self.all_speeds else spds)
+
         else:
-            act_outputs, wide_seg_outputs = self.main_model(wide_rgbs, narr_rgbs, spd=None if self.all_speeds else spds)
+            act_outputs, wide_seg_outputs = self.main_model(
+                    wide_rgbs, narr_rgbs, spd=None if self.all_speeds else spds)
+            if self.use_expert:
+                with torch.no_grad():
+                    act_outputs_exp, wide_seg_outputs_exp = self.expert_model(
+                            wide_rgbs, narr_rgbs, spd=None if self.all_speeds else spds)
+
         
         if self.all_speeds:
             act_loss = F.kl_div(F.log_softmax(act_outputs, dim=3), act_probs, reduction='none').mean(dim=[2,3])
+            if self.use_expert:
+                exp_loss = F.kl_div(F.log_softmax(act_outputs_exp, dim=3), act_probs, reduction='none').mean(dim=[2,3])
         else:
             act_probs = self.spd_lerp(act_probs, spds)
             act_loss = F.kl_div(F.log_softmax(act_outputs, dim=2), act_probs, reduction='none').mean(dim=2)
+            if self.use_expert:
+                exp_loss = F.kl_div(F.log_softmax(act_outputs_exp, dim=2), act_probs, reduction='none').mean(dim=2)
         
         turn_loss = (act_loss[:,0]+act_loss[:,1]+act_loss[:,2]+act_loss[:,3])/4
         lane_loss = (act_loss[:,4]+act_loss[:,5]+act_loss[:,3])/3
         foll_loss = act_loss[:,3]
+
+        
         
         is_turn = (cmds==0)|(cmds==1)|(cmds==2)
         is_lane = (cmds==4)|(cmds==5)
 
         act_loss = torch.mean(torch.where(is_turn, turn_loss, foll_loss) + torch.where(is_lane, lane_loss, foll_loss))
+
         seg_loss = F.cross_entropy(F.interpolate(wide_seg_outputs,scale_factor=4), wide_sems)
+
 
         if self.use_narr_cam:
             seg_loss = seg_loss + F.cross_entropy(F.interpolate(narr_seg_outputs,scale_factor=4), narr_sems)
             seg_loss = seg_loss / 2
 
         loss = act_loss + self.seg_weight * seg_loss
+
+        # EXPERIMENTAL expert loss
+        if self.use_expert:
+            turn_loss_exp = (exp_loss[:,0]+exp_loss[:,1]+exp_loss[:,2]+exp_loss[:,3])/4
+            lane_loss_exp  = (exp_loss[:,4]+exp_loss[:,5]+exp_loss[:,3])/3
+            foll_loss_exp  = exp_loss[:,3]
+            exp_loss = torch.mean(torch.where(is_turn, turn_loss_exp, foll_loss_exp) + torch.where(is_lane, lane_loss_exp, foll_loss_exp))
+
+            loss += self.exp_weight * exp_loss
+        else:
+            exp_loss = 0
         
         # Backpropogate
         self.main_optim.zero_grad()
@@ -96,10 +133,11 @@ class RAILS:
         else:
             act_prob      = act_probs[0,int(cmds[0])]
             pred_act_prob = F.softmax(act_outputs[0,int(cmds[0])], dim=0)
-        
-        return dict(
+
+        metrics = dict(
             act_loss=float(act_loss),
             seg_loss=float(seg_loss),
+            exp_loss=float(exp_loss),
             loss=float(loss),
             gt_seg=to_numpy(wide_sems[0]),
             pred_seg  =to_numpy(wide_seg_outputs[0]).argmax(0),
@@ -112,6 +150,8 @@ class RAILS:
             act_brak=float(act_prob[-1]),
             pred_act_brak=float(pred_act_prob[-1])
         )
+        
+        return metrics
 
     @torch.no_grad()
     def val_main(self, wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds):
@@ -127,42 +167,74 @@ class RAILS:
         act_probs = F.softmax(act_vals/self.temperature, dim=3)
         
         if self.use_narr_cam:
-            act_outputs, wide_seg_outputs, narr_seg_outputs = self.main_model(wide_rgbs, narr_rgbs, spd=None if self.all_speeds else spds)
+            act_outputs, wide_seg_outputs, narr_seg_outputs = self.main_model(
+                    wide_rgbs, narr_rgbs, spd=None if self.all_speeds else spds)
+            if self.use_expert:
+                with torch.no_grad():
+                    act_outputs_exp, wide_seg_outputs_exp, narr_seg_outputs_exp = self.expert_model(
+                            wide_rgbs, narr_rgbs, spd=None if self.all_speeds else spds)
+
         else:
-            act_outputs, wide_seg_outputs = self.main_model(wide_rgbs, narr_rgbs, spd=None if self.all_speeds else spds)
+            act_outputs, wide_seg_outputs = self.main_model(
+                    wide_rgbs, narr_rgbs, spd=None if self.all_speeds else spds)
+            if self.use_expert:
+                with torch.no_grad():
+                    act_outputs_exp, wide_seg_outputs_exp = self.expert_model(
+                            wide_rgbs, narr_rgbs, spd=None if self.all_speeds else spds)
+
         
         if self.all_speeds:
             act_loss = F.kl_div(F.log_softmax(act_outputs, dim=3), act_probs, reduction='none').mean(dim=[2,3])
+            if self.use_expert:
+                exp_loss = F.kl_div(F.log_softmax(act_outputs_exp, dim=3), act_probs, reduction='none').mean(dim=[2,3])
         else:
             act_probs = self.spd_lerp(act_probs, spds)
             act_loss = F.kl_div(F.log_softmax(act_outputs, dim=2), act_probs, reduction='none').mean(dim=2)
+            if self.use_expert:
+                exp_loss = F.kl_div(F.log_softmax(act_outputs_exp, dim=2), act_probs, reduction='none').mean(dim=2)
         
         turn_loss = (act_loss[:,0]+act_loss[:,1]+act_loss[:,2]+act_loss[:,3])/4
         lane_loss = (act_loss[:,4]+act_loss[:,5]+act_loss[:,3])/3
         foll_loss = act_loss[:,3]
+
+        
         
         is_turn = (cmds==0)|(cmds==1)|(cmds==2)
         is_lane = (cmds==4)|(cmds==5)
 
         act_loss = torch.mean(torch.where(is_turn, turn_loss, foll_loss) + torch.where(is_lane, lane_loss, foll_loss))
+
         seg_loss = F.cross_entropy(F.interpolate(wide_seg_outputs,scale_factor=4), wide_sems)
+
 
         if self.use_narr_cam:
             seg_loss = seg_loss + F.cross_entropy(F.interpolate(narr_seg_outputs,scale_factor=4), narr_sems)
             seg_loss = seg_loss / 2
 
         loss = act_loss + self.seg_weight * seg_loss
-        
+
+        # EXPERIMENTAL expert loss
+        if self.use_expert:
+            turn_loss_exp = (exp_loss[:,0]+exp_loss[:,1]+exp_loss[:,2]+exp_loss[:,3])/4
+            lane_loss_exp  = (exp_loss[:,4]+exp_loss[:,5]+exp_loss[:,3])/3
+            foll_loss_exp  = exp_loss[:,3]
+            exp_loss = torch.mean(torch.where(is_turn, turn_loss_exp, foll_loss_exp) + torch.where(is_lane, lane_loss_exp, foll_loss_exp))
+
+            loss += self.exp_weight * exp_loss
+        else:
+            exp_loss = 0
+
         if self.all_speeds:
             act_prob      = BellmanUpdater._batch_lerp(act_probs[0,int(cmds[0])].permute(1,0), spds[0:1], min_val=BellmanUpdater._min_speeds, max_val=BellmanUpdater._max_speeds)
             pred_act_prob = BellmanUpdater._batch_lerp(F.softmax(act_outputs[0,int(cmds[0])],dim=1).permute(1,0), spds[0:1], min_val=BellmanUpdater._min_speeds, max_val=BellmanUpdater._max_speeds)
         else:
             act_prob      = act_probs[0,int(cmds[0])]
             pred_act_prob = F.softmax(act_outputs[0,int(cmds[0])], dim=0)
-        
-        return dict(
+
+        metrics = dict(
             act_loss=float(act_loss),
             seg_loss=float(seg_loss),
+            exp_loss=float(exp_loss),
             loss=float(loss),
             gt_seg=to_numpy(wide_sems[0]),
             pred_seg  =to_numpy(wide_seg_outputs[0]).argmax(0),
@@ -175,7 +247,8 @@ class RAILS:
             act_brak=float(act_prob[-1]),
             pred_act_brak=float(pred_act_prob[-1])
         )
-
+        
+        return metrics
 
 
     def train_ego(self, locs, rots, spds, acts):

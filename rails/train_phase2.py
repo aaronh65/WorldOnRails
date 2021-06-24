@@ -37,21 +37,26 @@ def main(args):
             global_it += 1
 
         # val
-        val_info = {'epoch': epoch, 'val_seg_loss': [], 'val_act_loss': [], 'val_loss': []}
         rails.main_model.eval()
+
+        val_info = {'epoch': epoch, 'val_seg_loss': [], 'val_act_loss': [], 'val_loss': [], 'val_exp_loss': []}
         for wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds in tqdm.tqdm(val_data, desc='Epoch {}'.format(epoch)):
             opt_info = rails.val_main(wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds)
             val_info['val_seg_loss'].append(opt_info['seg_loss'])
             val_info['val_act_loss'].append(opt_info['act_loss'])
+            val_info['val_exp_loss'].append(opt_info['exp_loss'])
             val_info['val_loss'].append(opt_info['loss'])
         val_info['val_seg_loss'] = np.mean(val_info['val_seg_loss'])
         val_info['val_act_loss'] = np.mean(val_info['val_act_loss'])
+        val_info['val_exp_loss'] = np.mean(val_info['val_exp_loss'])
         val_info['val_loss'] = np.mean(val_info['val_loss'])
         opt_info.pop('seg_loss')
         opt_info.pop('act_loss')
+        opt_info.pop('exp_loss')
         opt_info.pop('loss')
         val_info.update(opt_info)
         logger.log_main_info(global_it, val_info, mode='val')
+
         rails.main_model.train()
     
         # Save model

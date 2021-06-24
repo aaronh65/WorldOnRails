@@ -29,11 +29,17 @@ seg_weight: 0.05
 wide_crop_top: 48
 narr_crop_bottom: 80
 imagenet_pretrained: True
-log_wandb: True
+log_wandb: False
 noise_collect: False
 use_narr_cam: True
 multi_cam: True
 all_speeds: True
+
+# EXPERIMENTAL
+use_expert: False
+exp_model_dir: /data/aaronhua/wor/training/main/dian/main_model_10.th
+exp_weight: 1
+
 ego_data_dir: /data/aaronhua/wor/data/ego/test
 ego_model_dir: /data/aaronhua/wor/training/ego/dian/ego_model.th
 main_data_dir: /data/aaronhua/wor/data/main/dian
