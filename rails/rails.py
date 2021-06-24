@@ -339,21 +339,21 @@ class RAILSActionLabeler():
 
             count += 1
 
-            #if count % self.num_per_log == 0:
-            #    logger.log_label_info.remote(dict(
-            #        wide_rgb=wide_rgb,
-            #        narr_rgb=narr_rgb,
-            #        act_val_norm=action_value[0,:-1].reshape(self._rails.num_throts, self._rails.num_steers),
-            #        act_val_brak=float(action_value[0,-1]),
-            #        cmd=cmd,
-            #    ), count, worker_id=self.worker_id)
+            if count % self.num_per_log == 0:
+                logger.log_label_info.remote(dict(
+                    wide_rgb=wide_rgb,
+                    narr_rgb=narr_rgb,
+                    act_val_norm=action_value[0,:-1].reshape(self._rails.num_throts, self._rails.num_steers),
+                    act_val_brak=float(action_value[0,-1]),
+                    cmd=cmd,
+                ), count, worker_id=self.worker_id)
             
             self.write_dataset.save.remote(idx*len(self.camera_yaws), action_values)
         
-        #logger.log_label_info.remote(dict(
-        #    wide_rgb=wide_rgb,
-        #    narr_rgb=narr_rgb,
-        #    act_val_norm=action_value[0,:-1].reshape(self._rails.num_throts, self._rails.num_steers),
-        #    act_val_brak=float(action_value[0,-1]),
-        #    cmd=cmd,
-        #), count, worker_id=self.worker_id)
+        logger.log_label_info.remote(dict(
+            wide_rgb=wide_rgb,
+            narr_rgb=narr_rgb,
+            act_val_norm=action_value[0,:-1].reshape(self._rails.num_throts, self._rails.num_steers),
+            act_val_brak=float(action_value[0,-1]),
+            cmd=cmd,
+        ), count, worker_id=self.worker_id)
