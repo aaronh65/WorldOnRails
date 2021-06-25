@@ -17,12 +17,19 @@ def main(args):
     # route = 'assets/routes_training/route_10.xml'
 
     args.agent = 'autoagents/collector_agents/q_collector_image' # Use 'viz_collector' for collecting pretty images
-    args.agent_config = 'config.yaml'
-    with open(args.agent_config, 'r') as f:
-        config = yaml.safe_load(f)
-    config.update(vars(args))
-    with open(os.path.join(config['main_data_dir'], 'config.yaml'), 'w') as f:
-        yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+    agent_config_path = 'config.yaml'
+    with open(agent_config_path, 'r') as f:
+        agent_config = yaml.safe_load(f)
+    agent_config_path = os.path.join(agent_config['main_data_dir'], 'agent_config.yaml')
+    with open(agent_config_path, 'w') as f:
+        yaml.dump(agent_config, f, default_flow_style=False, sort_keys=False)
+    args.agent_config = agent_config_path
+
+    program_config = vars(args)
+    program_config_path = os.path.join(agent_config['main_data_dir'], 'program_config.yaml')
+    with open(program_config_path, 'w') as f:
+        yaml.dump(program_config, f, default_flow_style=False, sort_keys=False)
+    #config.update(vars(args))
 
     #args.agent_config = 'experiments/config_nocrash.yaml'
 
@@ -31,7 +38,7 @@ def main(args):
     
     record=''
     if args.record:
-        record = config['main_data_dir']
+        record = agent_config['main_data_dir']
 
     jobs = []
     for i in range(args.num_runners):
@@ -41,7 +48,7 @@ def main(args):
         port = (i+1) * args.port
         tm_port = port + 2
         #checkpoint = f'results/{i:02d}_{args.checkpoint}'
-        checkpoint = config['main_data_dir']
+        checkpoint = agent_config['main_data_dir']
 
         start = bounds[i]
         end = bounds[i+1] if i != args.num_runners-1 else len(route_paths)
