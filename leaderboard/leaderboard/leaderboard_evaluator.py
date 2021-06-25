@@ -287,11 +287,6 @@ class LeaderboardEvaluator(object):
             self.agent_instance = getattr(self.module_agent, agent_class_name)(args.agent_config)
             config.agent = self.agent_instance
 
-            # EXPERIMENTAL - for recording
-            args.checkpoint = os.path.join(os.environ['SAVE_ROOT'], 'results.json')
-            #Path(Path(args.checkpoint).parent).mkdir(parents=True, exist_ok=False)
-            self.statistics_manager.clear_record(args.checkpoint)
-
             # Check and store the sensors
             if not self.sensors:
                 self.sensors = self.agent_instance.sensors()
@@ -353,12 +348,12 @@ class LeaderboardEvaluator(object):
 
             self.manager.load_scenario(scenario, self.agent_instance, config.repetition_index)
 
-            if 'q_collector' not in args.agent:
-                route_num = int(config.name.split('_')[-1])
-                route_name = f'route_{route_num:02d}'
-                repetition = f'repetition_{config.repetition_index:02d}'
-                os.environ['ROUTE_NAME'] = route_name
-                os.environ["REPETITION"] = repetition
+            # EXPERIMENTAL - for recording
+            route_num = int(config.name.split('_')[-1])
+            route_name = f'route_{route_num:02d}'
+            repetition = f'repetition_{config.repetition_index:02d}'
+            os.environ['ROUTE_NAME'] = route_name
+            os.environ["REPETITION"] = repetition
 
         except Exception as e:
             # The scenario is wrong -> set the ejecution to crashed and stop
@@ -428,8 +423,8 @@ class LeaderboardEvaluator(object):
         """
         Run the challenge mode
         """
-        route_indexer = RouteIndexer(args.routes, args.scenarios, args.repetitions)
 
+        route_indexer = RouteIndexer(args.routes, args.scenarios, args.repetitions)
         if args.resume:
             route_indexer.resume(args.checkpoint)
             self.statistics_manager.resume(args.checkpoint)

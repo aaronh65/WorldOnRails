@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from common.augmenter import augment
+from pathlib import Path
 from utils import filter_sem
 
 # CHANNELS = [
@@ -114,18 +115,23 @@ class MainDataset(Dataset):
         self.file_map = dict()
 
         # Load dataset
+        data_dir = Path(data_dir) / 'data'
+        routes = list(sorted(data_dir.glob('*')))
+        folders = []
+        for route in routes:
+            folders.extend(list(sorted(route.glob('*'))))
         bad_paths = ''
-        for i, full_path in enumerate(glob.glob(f'{data_dir}/**')):
-            print(full_path)
+        #for i, full_path in enumerate(glob.glob(f'{data_dir}/**')):
+        for i, full_path in enumerate(folders):
             if (mode == 'val' and i % 10 != 9) or (mode == 'train' and i % 10 == 9):
                 continue
-
-            try:
-                txn = lmdb.open(
-                    full_path,
+            print(full_path)
+            txn = lmdb.open(
+                    str(full_path),
                     max_readers=1, readonly=True,
                     lock=False, readahead=False, meminit=False).begin(write=False)
                 
+            try:
                 n = int(txn.get('len'.encode()))
                 if n < self.T+1:
                     print (full_path, ' is too small. consider deleting it.')
@@ -144,7 +150,7 @@ class MainDataset(Dataset):
                 bad_paths += f'{str(full_path)}\n'
 
         print(f'{data_dir}: {self.num_frames} frames (x{len(self.camera_yaws)})')
-        print('consider deleting the following directories:')
+        print('the following directories had errors:')
         print(bad_paths)
         
     def __len__(self):
@@ -171,7 +177,7 @@ class MainDataset(Dataset):
         wide_sem = self.__class__.access('wide_sem_{}'.format(cam_index),  lmdb_txn, index, 1, dtype=np.uint8).reshape(240,480)
         narr_rgb = self.__class__.access('narr_rgb_{}'.format(cam_index),  lmdb_txn, index, 1, dtype=np.uint8).reshape(240,384,3)
         cmd = self.__class__.access('cmd', lmdb_txn, index, 1, dtype=np.float32).flatten()
-
+        
         wide_sem = filter_sem(wide_sem, self.seg_channels)
 
         # Crop cameras
@@ -179,7 +185,15 @@ class MainDataset(Dataset):
         wide_sem = wide_sem[self.wide_crop_top:]
         narr_rgb = narr_rgb[:-self.narr_crop_bottom,:,::-1]
 
-        return wide_rgb, wide_sem, narr_rgb, lbls, locs, rots, spds, int(cmd)
+        # EXPERIMENTAL
+        infs = self.__class__.access('inf', lmdb_txn, index, self.T+1, dtype=np.float32)
+
+        # EXPERIMENTAL
+        #infs = self.__class__.access('inf', lmdb_txn, 0, self.num_frames, dtype=np.float32)
+        #print(infs)
+
+        return wide_rgb, wide_sem, narr_rgb, lbls, locs, rots, spds, int(cmd), infs
+
 
     @staticmethod
     def access(tag, lmdb_txn, index, T, dtype=np.float32):
@@ -263,8 +277,9 @@ class RemoteMainDataset(MainDataset):
 if __name__ == '__main__':
     
     #dataset = MainDataset('/ssd2/dian/challenge_data/main_trajs_nocrash_nonoise', '/home/dianchen/carla_challenge/experiments/config_nocrash.yaml')
-    dataset = MainDataset('/data3/aaronhua/wor/data/main/dian_bkup', '/home/aaronhua/WorldOnRails/config.yaml')
+    dataset = MainDataset('/data/aaronhua/wor/data/main/infractions', '/home/aaron/workspace/carla/WorldOnRails/config.yaml')
     
-    # wide_rgb, wide_sem, narr_rgb, lbls, locs, rots, spds, cmd = dataset[30]
-    
-    # print (cmd)
+    for i, data in enumerate(dataset):
+        wide_rgb, wide_sem, narr_rgb, lbls, locs, rots, spds, cmd, infs = data
+        if 1 in infs.flatten():
+            print(i, infs)

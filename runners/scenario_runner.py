@@ -1,4 +1,6 @@
+import os
 import ray
+from pathlib import Path
 from copy import deepcopy
 from leaderboard.leaderboard_evaluator import LeaderboardEvaluator
 from leaderboard.utils.statistics_manager import StatisticsManager
@@ -15,13 +17,23 @@ class ScenarioRunner():
         args.port = port
         args.trafficManagerPort = tm_port
         args.scenarios = scenario
-        args.routes = route
         args.debug = debug
         args.checkpoint = checkpoint
         args.record = record 
+        args.routes = route
 
-        self.runner = LeaderboardEvaluator(args, StatisticsManager())
         self.args = args
 
     def run(self):
-        return self.runner.run(self.args)
+        for r in self.args.routes:
+            print(r)
+            args = deepcopy(self.args)
+            args.routes = r
+            rname = r.split('/')[-1].split('.')[0]
+            ckpt = Path(os.path.join(args.checkpoint, 'logs'))
+            ckpt.mkdir(parents=True,exist_ok=True)
+            args.checkpoint = str(ckpt / f'{rname}.json')
+            runner = LeaderboardEvaluator(args, StatisticsManager())
+            ret = runner.run(args)
+
+        return ret

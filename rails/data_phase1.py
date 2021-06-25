@@ -9,19 +9,28 @@ def main(args):
 
     # scenario = 'assets/all_towns_traffic_scenarios.json'
     scenario = 'assets/no_scenarios.json'
-    route = 'assets/routes_all.xml'
+    #route = 'assets/routes_all.xml'
+    #route = 'assets/route_training.xml'
+    route_dir = f'assets/routes_{args.split}'
+    route_paths = [os.path.join(route_dir, route) for route in sorted(os.listdir(route_dir))]
+    bounds = list(range(0, len(route_paths), len(route_paths)//args.num_runners))
     # route = 'assets/routes_training/route_10.xml'
 
     args.agent = 'autoagents/collector_agents/q_collector_image' # Use 'viz_collector' for collecting pretty images
     args.agent_config = 'config.yaml'
+    with open(args.agent_config, 'r') as f:
+        config = yaml.safe_load(f)
+    config.update(vars(args))
+    with open(os.path.join(config['main_data_dir'], 'config.yaml'), 'w') as f:
+        yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
     #args.agent_config = 'experiments/config_nocrash.yaml'
 
     # args.agent = 'autoagents/collector_agents/lidar_q_collector'
     # args.agent_config = 'config_lidar.yaml'
+    
     record=''
     if args.record:
-        with open(args.agent_config, 'r') as f:
-            config = yaml.safe_load(f)
         record = config['main_data_dir']
 
     jobs = []
@@ -32,8 +41,12 @@ def main(args):
         port = (i+1) * args.port
         tm_port = port + 2
         #checkpoint = f'results/{i:02d}_{args.checkpoint}'
-        checkpoint = os.path.join(config['main_data_dir'], 'results.json')
-        runner = ScenarioRunner.remote(args, scenario_class, scenario, route, checkpoint=checkpoint, town=town, port=port, tm_port=tm_port, record=record)
+        checkpoint = config['main_data_dir']
+
+        start = bounds[i]
+        end = bounds[i+1] if i != args.num_runners-1 else len(route_paths)
+        routes = route_paths[start:end]
+        runner = ScenarioRunner.remote(args, scenario_class, scenario, routes, checkpoint=checkpoint, town=town, port=port, tm_port=tm_port, record=record)
         jobs.append(runner.run.remote())
     
     ray.wait(jobs, num_returns=args.num_runners)
@@ -56,13 +69,14 @@ if __name__ == '__main__':
                         help='Seed used by the TrafficManager (default: 0)')
     parser.add_argument('--timeout', default="600.0",
                         help='Set the CARLA client timeout value in seconds')
+    parser.add_argument('--split', type=str, default='training', choices=['devtest','testing','training'])
 
     # agent-related options
     # parser.add_argument("-a", "--agent", type=str, help="Path to Agent's py file to evaluate", required=True)
     # parser.add_argument("--agent-config", type=str, help="Path to Agent's configuration file", default="")
     parser.add_argument('--repetitions',
                         type=int,
-                        default=100,
+                        default=1,
                         help='Number of repetitions per route.')
     parser.add_argument("--track", type=str, default='MAP', help="Participation track: SENSORS, MAP")
     parser.add_argument('--resume', type=bool, default=False, help='Resume execution from last checkpoint?')

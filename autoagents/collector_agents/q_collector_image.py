@@ -10,9 +10,10 @@ import random
 import string
 
 from torch.distributions.categorical import Categorical
-
+from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from leaderboard.autoagents.autonomous_agent import AutonomousAgent, Track
 from utils import visualize_obs, _numpy
+from pathlib import Path
 
 from rails.bellman import BellmanUpdater
 from rails.models import EgoModel, CameraModel
@@ -79,6 +80,7 @@ class QCollectorImage(AutonomousAgent):
         self.rots = []
         self.spds = []
         self.cmds = []
+        self.infs = []
 
         self.waypointer = None
 
@@ -105,10 +107,10 @@ class QCollectorImage(AutonomousAgent):
         self.stop_counter = 0
 
         self.rstring = _random_string()
+        self.num_infractions = 0
         #os.environ['SAVE_ROOT'] = os.path.join(self.main_data_dir, self.rstring)
         os.environ['SAVE_ROOT'] = self.main_data_dir
-        os.environ['ROUTE_NAME'] = ''
-        os.environ['REPETITION'] = self.rstring
+        
 
     def destroy(self):
         if len(self.lbls) == 0:
@@ -117,14 +119,16 @@ class QCollectorImage(AutonomousAgent):
         self.flush_data()
 
     def flush_data(self):
-
         if self.log_wandb:
             wandb.log({
                 'vid': wandb.Video(np.stack(self.vizs).transpose((0,3,1,2)), fps=20, format='mp4')
             })
 
         # Save data
-        data_path = os.path.join(self.main_data_dir, self.rstring)
+        #data_path = os.path.join(self.main_data_dir, self.rstring)
+        data_path = Path(self.main_data_dir) / 'data' / os.environ['ROUTE_NAME'] / os.environ['REPETITION']
+        data_path.mkdir(parents=True, exist_ok=False)
+        data_path = str(data_path)
         print ('Saving to {}'.format(data_path))
 
         lmdb_env = lmdb.open(data_path, map_size=int(1e10))
@@ -183,6 +187,11 @@ class QCollectorImage(AutonomousAgent):
                     np.ascontiguousarray(self.cmds[i]).astype(np.float32)
                 )
 
+                txn.put(
+                    f'inf_{i:05d}'.encode(),
+                    np.ascontiguousarray(self.infs[i]).astype(np.float32)
+                )
+
         self.vizs.clear()
         self.wide_rgbs.clear()
         self.narr_rgbs.clear()
@@ -193,6 +202,7 @@ class QCollectorImage(AutonomousAgent):
         self.rots.clear()
         self.spds.clear()
         self.cmds.clear()
+        self.infs.clear()
         
         lmdb_env.close()
 
@@ -254,6 +264,7 @@ class QCollectorImage(AutonomousAgent):
         spd = ego.get('spd')
         loc = ego.get('loc')
 
+        
         #delta_locs, delta_yaws, next_spds = BellmanUpdater.compute_table(yaw/180*math.pi)
 
         # Convert lbl to rew maps
@@ -298,6 +309,8 @@ class QCollectorImage(AutonomousAgent):
         self.vizs.append(visualize_obs(rgb, yaw/180*math.pi, (steer, throt, brake), spd, cmd=cmd.value, lbl=lbl_copy))
 
         if col:
+            inf_obj = CarlaDataProvider.get_infraction_list()[-1]
+            self.infs[-1] = inf_obj.get_type().value
             self.flush_data()
             raise Exception('Collector has collided!! Heading out :P')
 
@@ -325,6 +338,15 @@ class QCollectorImage(AutonomousAgent):
             self.rots.append(yaw)
             self.spds.append(spd)
             self.cmds.append(cmd_value)
+
+            inf = -1
+            infs = CarlaDataProvider.get_infraction_list()
+            if self.num_infractions < len(infs):
+                inf_obj = infs[-1]
+                inf = inf_obj.get_type().value
+                self.num_infractions = len(infs)
+
+            self.infs.append(inf)
         
         self.num_frames += 1
         
