@@ -351,6 +351,8 @@ class LeaderboardEvaluator(object):
             # EXPERIMENTAL - for recording
             route_num = int(config.name.split('_')[-1])
             route_name = f'route_{route_num:02d}'
+            if hasattr(args, 'split'):
+                route_name = f'{args.split}_{route_name}'
             repetition = f'repetition_{config.repetition_index:02d}'
             os.environ['ROUTE_NAME'] = route_name
             os.environ["REPETITION"] = repetition

@@ -123,7 +123,7 @@ def plot_metrics(args, metrics, routes, plot_dir, split):
 
 def main(args):
 
-    config_path = f'{args.target_dir}/config.yml'
+    config_path = f'{args.target_dir}/config.yaml'
     with open(config_path, 'r') as f:
         config = yaml.load(f, Loader=yaml.Loader)
     split = config['split']
