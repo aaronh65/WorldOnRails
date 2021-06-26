@@ -32,7 +32,7 @@ class ScenarioRunner():
             rname = r.split('/')[-1].split('.')[0]
             ckpt = Path(os.path.join(args.checkpoint, 'logs'))
             ckpt.mkdir(parents=True,exist_ok=True)
-            args.checkpoint = str(ckpt / f'{rname}.json')
+            args.checkpoint = str(ckpt / f'{args.split}_{rname}.json')
             runner = LeaderboardEvaluator(args, StatisticsManager())
             ret = runner.run(args)
 

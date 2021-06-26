@@ -349,8 +349,7 @@ class LeaderboardEvaluator(object):
             self.manager.load_scenario(scenario, self.agent_instance, config.repetition_index)
 
             # EXPERIMENTAL - for recording
-            route_num = int(config.name.split('_')[-1])
-            route_name = f'route_{route_num:02d}'
+            route_name = args.routes.split('/')[-1].split('.')[0]
             if hasattr(args, 'split'):
                 route_name = f'{args.split}_{route_name}'
             repetition = f'repetition_{config.repetition_index:02d}'
