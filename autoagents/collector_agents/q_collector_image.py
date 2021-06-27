@@ -127,7 +127,10 @@ class QCollectorImage(AutonomousAgent):
         # Save data
         #data_path = os.path.join(self.main_data_dir, self.rstring)
         data_path = Path(self.main_data_dir) / 'data' / os.environ['ROUTE_NAME'] / os.environ['REPETITION']
-        data_path.mkdir(parents=True, exist_ok=False)
+        if data_path.exists():
+            print('WARNING: overwriting data')
+        else:
+            data_path.mkdir(parents=True)
         data_path = str(data_path)
         print ('Saving to {}'.format(data_path))
 
@@ -410,7 +413,7 @@ class QCollectorImage(AutonomousAgent):
         steer, throt, brake = self.post_process(steer, throt, brake_prob, spd, cmd_value)
 
 
-        #steer, throt, brake = (np.random.random(), 0.75, 0)
+        #steer, throt, brake = (2*np.random.random()-1, 0.75, 0)
         return steer, throt, brake
         #return carla.VehicleControl(steer=steer, throttle=throt, brake=brake)
 
