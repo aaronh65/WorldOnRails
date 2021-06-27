@@ -123,7 +123,7 @@ def plot_metrics(args, metrics, routes, plot_dir, split):
 
 def main(args):
 
-    config_path = f'{args.target_dir}/config.yaml'
+    config_path = f'{args.target_dir}/program_config.yaml'
     with open(config_path, 'r') as f:
         config = yaml.load(f, Loader=yaml.Loader)
     split = config['split']
@@ -134,7 +134,7 @@ def main(args):
     assert os.path.exists(log_dir), 'no logs available'
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
-    log_fnames = sorted([os.path.join(log_dir, fname) for fname in os.listdir(log_dir) if fname.startswith('route')])
+    log_fnames = sorted([os.path.join(log_dir, fname) for fname in os.listdir(log_dir) if fname.endswith('.json')])
 
     routes = []
     route_infractions = {}
