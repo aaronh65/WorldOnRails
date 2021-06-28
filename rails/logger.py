@@ -6,6 +6,7 @@ import itertools
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from utils.visualization import visualize_semantic_processed
+from srunner.scenariomanager.traffic_events import TrafficEventType
 
 class Logger:
     def __init__(self, wandb_project, args):
@@ -62,13 +63,14 @@ class Logger:
         act_brak = opt_info.pop('act_brak')
         pred_act_prob = opt_info.pop('pred_act_prob')
         pred_act_brak = opt_info.pop('pred_act_brak')
+        viz_inf  = opt_info.pop('viz_inf')
 
         pred_seg = visualize_semantic_processed(pred_seg, self.seg_channels)
         gt_seg   = visualize_semantic_processed(gt_seg, self.seg_channels)
         
         f, [[ax1,ax2,ax3], [ax4,ax5,ax6]] = plt.subplots(2,3,figsize=(30,10))
 
-        ax1.imshow(narr_rgb); 
+        ax1.imshow(narr_rgb);           ax1.set_title(TrafficEventType(viz_inf).name)
         ax4.imshow(wide_rgb);           ax4.set_title({0:'Left',1:'Right',2:'Straight',3:'Follow',4:'Change Left',5:'Change Right'}.get(cmd))
         ax2.imshow(pred_seg);           ax2.set_title('predicted sem')
         ax5.imshow(gt_seg);             ax5.set_title('gt sem')

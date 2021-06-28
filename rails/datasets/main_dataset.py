@@ -1,4 +1,5 @@
 import ray
+import cv2
 import glob
 import yaml
 import lmdb
@@ -18,6 +19,9 @@ from utils import filter_sem
 #     # 12, # Traffic light poles
 #     # 18, # Traffic boxes
 # ]
+
+
+split_dict = {'train': ['training', 'devtest'], 'val': ['testing']}
 
 class VisualizationDataset(Dataset):
     
@@ -89,7 +93,7 @@ class VisualizationDataset(Dataset):
 
 
 class MainDataset(Dataset):
-    def __init__(self, data_dir, config_path, mode=''):
+    def __init__(self, data_dir, config_path, priority=False, mode=''):
         super().__init__()
 
         with open(config_path, 'r') as f:
@@ -120,14 +124,24 @@ class MainDataset(Dataset):
         folders = []
         for route in routes:
             folders.extend(list(sorted(route.glob('*'))))
+
         bad_paths = ''
-        #for i, full_path in enumerate(glob.glob(f'{data_dir}/**')):
+        ddict = {'hard':[], 'all':[]}
         for i, full_path in enumerate(folders):
-            if (mode == 'val' and i % 10 != 9) or (mode == 'train' and i % 10 == 9):
-                continue
-            print(full_path)
+            full_path = str(full_path)
+
+            # check for splits
+            if mode != '':
+                add = False
+                for tag in split_dict[mode]:
+                    if tag in full_path:
+                        add = True
+                        break
+                if not add:
+                    continue
+
             txn = lmdb.open(
-                    str(full_path),
+                    full_path,
                     max_readers=1, readonly=True,
                     lock=False, readahead=False, meminit=False).begin(write=False)
                 
@@ -145,25 +159,44 @@ class MainDataset(Dataset):
                             self.idx_map[(offset+i)*len(self.camera_yaws)+j] = i
                             self.yaw_map[(offset+i)*len(self.camera_yaws)+j] = j
                             self.file_map[(offset+i)*len(self.camera_yaws)+j] = full_path
+                            ddict['all'].append((offset+i)*len(self.camera_yaws)+j)
+
+                            infs = self.__class__.access('inf', txn, i, self.T+1, dtype=np.float32)
+                            if len(set(infs.flatten())) > 1:
+                                ddict['hard'].append((offset+i)*len(self.camera_yaws)+j)
+                                #print(full_path, infs)
 
             except Exception as e:
+                print(e)
                 bad_paths += f'{str(full_path)}\n'
+        self.ddict = ddict
+            
+        print(ddict['hard'])
+        print(ddict['all'])
 
         print(f'{data_dir}: {self.num_frames} frames (x{len(self.camera_yaws)})')
         print('the following directories had errors:')
         print(bad_paths)
+
+        if self.multi_cam:
+            self.dataset_len = self.num_frames*len(self.camera_yaws)
+        else:
+            self.dataset_len = self.num_frames*len(self.camera_yaws)
+
+        self.priority = priority
+        self.hard_prop = config['hard_prop']
+        #self.update_rate = self.dataset_len / config['num_workers']
+
         
     def __len__(self):
-        if self.multi_cam:
-            return self.num_frames*len(self.camera_yaws)
-        else:
-            return self.num_frames
-        
+        return self.dataset_len
+                
     def __getitem__(self, idx):
         
         if not self.multi_cam:
             idx *= len(self.camera_yaws)
 
+        
         lmdb_txn = self.txn_map[idx]
         index = self.idx_map[idx]
         cam_index = self.yaw_map[idx]
@@ -206,6 +239,13 @@ class LabeledMainDataset(MainDataset):
         self.augmenter = augment(0.5)
         
     def __getitem__(self, idx):
+
+        if self.priority:
+            if np.random.random() < self.hard_prop:
+                idx = np.random.choice(self.ddict['hard'])
+            else:
+                idx = np.random.choice(self.ddict['all'])
+
         lmdb_txn = self.txn_map[idx]
         index = self.idx_map[idx]
         cam_index = self.yaw_map[idx]
@@ -232,7 +272,9 @@ class LabeledMainDataset(MainDataset):
         wide_rgb = self.augmenter(images=wide_rgb[None])[0]
         narr_rgb = self.augmenter(images=narr_rgb[None])[0]
 
-        return wide_rgb, wide_sem, narr_rgb, narr_sem, act_val, float(spd), int(cmd)
+        infs = self.__class__.access('inf', lmdb_txn, index, self.T+1, dtype=np.float32)
+
+        return wide_rgb, wide_sem, narr_rgb, narr_sem, act_val, float(spd), int(cmd), infs
 
 
 @ray.remote
@@ -277,9 +319,16 @@ class RemoteMainDataset(MainDataset):
 if __name__ == '__main__':
     
     #dataset = MainDataset('/ssd2/dian/challenge_data/main_trajs_nocrash_nonoise', '/home/dianchen/carla_challenge/experiments/config_nocrash.yaml')
-    dataset = MainDataset('/data/aaronhua/wor/data/main/infractions', '/home/aaron/workspace/carla/WorldOnRails/config.yaml')
+    dataset = MainDataset('/data/aaronhua/wor/data/main/debug', '/home/aaron/workspace/carla/WorldOnRails/config.yaml')
     
-    for i, data in enumerate(dataset):
-        wide_rgb, wide_sem, narr_rgb, lbls, locs, rots, spds, cmd, infs = data
-        if 1 in infs.flatten():
-            print(i, infs)
+    #for i, data in enumerate(dataset):
+    #    if i % 3 != 0 :
+    #        continue
+    #    wide_rgb, wide_sem, narr_rgb, lbls, locs, rots, spds, cmd, infs = data
+    #    #cv2.imshow('rgb', wide_rgb)
+    #    #cv2.waitKey(100)
+    #    #print(wide_rgb.shape)
+    #    for inf in infs.flatten():
+    #        if inf != -1:
+    #            print(i, infs)
+    #            continue

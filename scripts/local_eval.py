@@ -29,6 +29,7 @@ appr, algo = tokens[0], tokens[-1]
 prefix = '/data/aaronhua/wor/data' if args.save_data else '/data/aaronhua/leaderboard/benchmark'
 suffix = f'debug/{args.id}' if args.debug else args.id
 save_root = Path(f'{prefix}/wor/{algo}/{suffix}')
+print(save_root)
 save_root.mkdir(parents=True,exist_ok=True)
 (save_root / 'plots').mkdir(exist_ok=True)
 (save_root / 'logs').mkdir(exist_ok=True)

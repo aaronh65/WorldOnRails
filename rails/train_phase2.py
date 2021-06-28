@@ -1,3 +1,4 @@
+from copy import deepcopy
 import tqdm
 import numpy as np
 import torch
@@ -8,8 +9,8 @@ from .logger import Logger
 def main(args):
     
     rails = RAILS(args)
-    train_data = data_loader('main', args, mode='train')
-    val_data = data_loader('main', args, mode='val')
+    train_data = data_loader('main', args, mode='train', priority=True)
+    val_data = data_loader('main', args, mode='val', priority=True)
     logger = Logger('carla_train_phase2', args)
     save_dir = logger.save_dir
     
@@ -27,8 +28,8 @@ def main(args):
     for epoch in range(start,start+args.num_epoch):
 
         # train
-        for wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds in tqdm.tqdm(train_data, desc='Epoch {}'.format(epoch)):
-            opt_info = rails.train_main(wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds)
+        for wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds, infs in tqdm.tqdm(train_data, desc='Epoch {}'.format(epoch)):
+            opt_info = rails.train_main(wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds, infs)
             opt_info['epoch'] = epoch
             
             if global_it % args.num_per_log == 0:
@@ -40,8 +41,8 @@ def main(args):
         rails.main_model.eval()
 
         val_info = {'epoch': epoch, 'val_seg_loss': [], 'val_act_loss': [], 'val_loss': [], 'val_exp_loss': []}
-        for wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds in tqdm.tqdm(val_data, desc='Epoch {}'.format(epoch)):
-            opt_info = rails.val_main(wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds)
+        for wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds, infs in tqdm.tqdm(val_data, desc='Epoch {}'.format(epoch)):
+            opt_info = rails.val_main(wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds, infs)
             val_info['val_seg_loss'].append(opt_info['seg_loss'])
             val_info['val_act_loss'].append(opt_info['act_loss'])
             val_info['val_exp_loss'].append(opt_info['exp_loss'])
@@ -70,12 +71,10 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     
-    #parser.add_argument('--resume', default=None)
-    parser.add_argument('--resume', default='/data/aaronhua/wor/training/main/dian/main_model_10.th')
+    parser.add_argument('--resume', default=None)
+    #parser.add_argument('--resume', default='/data/aaronhua/wor/training/main/dian/main_model_10.th')
     
-    parser.add_argument('--data-dir', default='/data/aaronhua/wor/data/main/dian')
-    #parser.add_argument('--data-dir', default='/scratch/aaronhua/wor/data/main/test')
-    #parser.add_argument('--data-dir', default='/ssd0/aaronhua/wor/data/main/dian')
+    parser.add_argument('--data-dir', default='/data/aaronhua/wor/data/main/debug')
     parser.add_argument('--config-path', default='config.yaml')
     parser.add_argument('--device', choices=['cpu', 'cuda'], default='cuda')
     

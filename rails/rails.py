@@ -52,7 +52,7 @@ class RAILS:
             return self.main_model.state_dict()
 
         
-    def train_main(self, wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds):
+    def train_main(self, wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds, infs):
 
         wide_rgbs = wide_rgbs.float().permute(0,3,1,2).to(self.device)
         narr_rgbs = narr_rgbs.float().permute(0,3,1,2).to(self.device)
@@ -80,22 +80,22 @@ class RAILS:
                     act_outputs_exp, wide_seg_outputs_exp = self.expert_model(
                             wide_rgbs, narr_rgbs, spd=None if self.all_speeds else spds)
 
-        
+        # EXPERIMENTAL expert loss       
         if self.all_speeds:
             act_loss = F.kl_div(F.log_softmax(act_outputs, dim=3), act_probs, reduction='none').mean(dim=[2,3])
             if self.use_expert:
-                exp_loss = F.kl_div(F.log_softmax(act_outputs_exp, dim=3), act_probs, reduction='none').mean(dim=[2,3])
+
+                exp_loss = F.kl_div(F.log_softmax(act_outputs, dim=3), F.softmax(act_outputs_exp/self.temperature, dim=3), reduction='none').mean(dim=[2,3])
         else:
             act_probs = self.spd_lerp(act_probs, spds)
             act_loss = F.kl_div(F.log_softmax(act_outputs, dim=2), act_probs, reduction='none').mean(dim=2)
             if self.use_expert:
-                exp_loss = F.kl_div(F.log_softmax(act_outputs_exp, dim=2), act_probs, reduction='none').mean(dim=2)
+                exp_loss = F.kl_div(F.log_softmax(act_outputs, dim=2), F.softmax(act_outputs_exp/self.temperature, dim=2), reduction='none').mean(dim=2)
         
+
         turn_loss = (act_loss[:,0]+act_loss[:,1]+act_loss[:,2]+act_loss[:,3])/4
         lane_loss = (act_loss[:,4]+act_loss[:,5]+act_loss[:,3])/3
         foll_loss = act_loss[:,3]
-
-        
         
         is_turn = (cmds==0)|(cmds==1)|(cmds==2)
         is_lane = (cmds==4)|(cmds==5)
@@ -116,9 +116,15 @@ class RAILS:
             turn_loss_exp = (exp_loss[:,0]+exp_loss[:,1]+exp_loss[:,2]+exp_loss[:,3])/4
             lane_loss_exp  = (exp_loss[:,4]+exp_loss[:,5]+exp_loss[:,3])/3
             foll_loss_exp  = exp_loss[:,3]
-            exp_loss = torch.mean(torch.where(is_turn, turn_loss_exp, foll_loss_exp) + torch.where(is_lane, lane_loss_exp, foll_loss_exp))
 
+            # (masked) loss
+            exp_loss = torch.where(is_turn, turn_loss_exp, foll_loss_exp) + torch.where(is_lane, lane_loss_exp, foll_loss_exp)
+            exp_mask = torch.sum(infs != -1, dim=[-1,-2]).to(self.device)
+            exp_loss = torch.mean(exp_loss * exp_mask)
             loss += self.exp_weight * exp_loss
+
+            viz_inf = int(max(torch.max(infs[0]), 0))
+
         else:
             exp_loss = 0
         
@@ -148,13 +154,14 @@ class RAILS:
             act_prob=to_numpy(act_prob[:-1]).reshape(self.num_throts,self.num_steers),
             pred_act_prob=to_numpy(pred_act_prob[:-1]).reshape(self.num_throts,self.num_steers),
             act_brak=float(act_prob[-1]),
-            pred_act_brak=float(pred_act_prob[-1])
+            pred_act_brak=float(pred_act_prob[-1]),
+            viz_inf=viz_inf
         )
         
         return metrics
 
     @torch.no_grad()
-    def val_main(self, wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds):
+    def val_main(self, wide_rgbs, wide_sems, narr_rgbs, narr_sems, act_vals, spds, cmds, infs):
 
         wide_rgbs = wide_rgbs.float().permute(0,3,1,2).to(self.device)
         narr_rgbs = narr_rgbs.float().permute(0,3,1,2).to(self.device)
@@ -182,22 +189,20 @@ class RAILS:
                     act_outputs_exp, wide_seg_outputs_exp = self.expert_model(
                             wide_rgbs, narr_rgbs, spd=None if self.all_speeds else spds)
 
-        
+        # EXPERIMENTAL expert loss
         if self.all_speeds:
             act_loss = F.kl_div(F.log_softmax(act_outputs, dim=3), act_probs, reduction='none').mean(dim=[2,3])
             if self.use_expert:
-                exp_loss = F.kl_div(F.log_softmax(act_outputs_exp, dim=3), act_probs, reduction='none').mean(dim=[2,3])
+                exp_loss = F.kl_div(F.log_softmax(act_outputs, dim=3), F.softmax(act_outputs_exp/self.temperature, dim=3), reduction='none').mean(dim=[2,3])
         else:
             act_probs = self.spd_lerp(act_probs, spds)
             act_loss = F.kl_div(F.log_softmax(act_outputs, dim=2), act_probs, reduction='none').mean(dim=2)
             if self.use_expert:
-                exp_loss = F.kl_div(F.log_softmax(act_outputs_exp, dim=2), act_probs, reduction='none').mean(dim=2)
+                exp_loss = F.kl_div(F.log_softmax(act_outputs, dim=2), F.softmax(act_outputs_exp/self.temperature, dim=2), reduction='none').mean(dim=2)
         
         turn_loss = (act_loss[:,0]+act_loss[:,1]+act_loss[:,2]+act_loss[:,3])/4
         lane_loss = (act_loss[:,4]+act_loss[:,5]+act_loss[:,3])/3
         foll_loss = act_loss[:,3]
-
-        
         
         is_turn = (cmds==0)|(cmds==1)|(cmds==2)
         is_lane = (cmds==4)|(cmds==5)
@@ -218,9 +223,15 @@ class RAILS:
             turn_loss_exp = (exp_loss[:,0]+exp_loss[:,1]+exp_loss[:,2]+exp_loss[:,3])/4
             lane_loss_exp  = (exp_loss[:,4]+exp_loss[:,5]+exp_loss[:,3])/3
             foll_loss_exp  = exp_loss[:,3]
-            exp_loss = torch.mean(torch.where(is_turn, turn_loss_exp, foll_loss_exp) + torch.where(is_lane, lane_loss_exp, foll_loss_exp))
 
+            # (masked) loss
+            exp_loss = torch.where(is_turn, turn_loss_exp, foll_loss_exp) + torch.where(is_lane, lane_loss_exp, foll_loss_exp)
+            exp_mask = torch.sum(infs != -1, dim=[-1,-2]).to(self.device)
+            exp_loss = torch.mean(exp_loss * exp_mask)
             loss += self.exp_weight * exp_loss
+
+            viz_inf = int(max(torch.max(infs[0]), 0))
+
         else:
             exp_loss = 0
 
@@ -245,7 +256,8 @@ class RAILS:
             act_prob=to_numpy(act_prob[:-1]).reshape(self.num_throts,self.num_steers),
             pred_act_prob=to_numpy(pred_act_prob[:-1]).reshape(self.num_throts,self.num_steers),
             act_brak=float(act_prob[-1]),
-            pred_act_brak=float(pred_act_prob[-1])
+            pred_act_brak=float(pred_act_prob[-1]),
+            viz_inf=viz_inf,
         )
         
         return metrics
@@ -406,7 +418,11 @@ class RAILSActionLabeler():
 
         count = 0
         for idx in range(self.start_idx, self.end_idx):
-            wide_rgb, wide_sem, narr_rgb, lbls, locs, rots, spds, cmd = self.dataset[idx*len(self.camera_yaws)]
+            data = self.dataset[idx*len(self.camera_yaws)]
+            if len(data) == 8:
+                wide_rgb, wide_sem, narr_rgb, lbls, locs, rots, spds, cmd = data
+            elif len(data) == 9:
+                wide_rgb, wide_sem, narr_rgb, lbls, locs, rots, spds, cmd, infs = data
 
             action_value, action_values = self._rails.bellman_plan(lbls, locs, rots, spds, cmd, dense_action_values=False)
 
