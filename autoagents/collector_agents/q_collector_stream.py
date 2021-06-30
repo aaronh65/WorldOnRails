@@ -127,8 +127,7 @@ class QCollectorImage(AutonomousAgent):
             self.infs[-1] = inf_obj.get_type().value
         self.flush_data(self.num_samples-1)
         with self.lmdb_env.begin(write=True) as txn:
-            print(f'NUM SAMPLES {self.num_samples}')
-            print(txn.put('len'.encode(), str(self.num_samples).encode()))
+            txn.put('len'.encode(), str(self.num_samples).encode())
 
         self.vizs.clear()
         self.wide_rgbs.clear()
@@ -145,7 +144,6 @@ class QCollectorImage(AutonomousAgent):
         self.lmdb_env.close()
 
     def flush_data(self, i):
-        print(f'putting data at timestep {i}')
         with self.lmdb_env.begin(write=True) as txn:
             for idx in range(len(self.camera_yaws)):
                 txn.put(
