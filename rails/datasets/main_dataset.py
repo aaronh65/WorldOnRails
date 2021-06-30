@@ -127,6 +127,7 @@ class MainDataset(Dataset):
 
         bad_paths = ''
         ddict = {'hard':[], 'all':[]}
+        self.hard_frames = 0
         for i, full_path in enumerate(folders):
             full_path = str(full_path)
 
@@ -162,19 +163,22 @@ class MainDataset(Dataset):
                             ddict['all'].append((offset+i)*len(self.camera_yaws)+j)
 
                             infs = self.__class__.access('inf', txn, i, self.T+1, dtype=np.float32)
-                            if len(set(infs.flatten())) > 1:
+                            # ignore stop sign infractions
+                            if len(set(infs.flatten())) > 1 and 10 not in set(infs.flatten()): 
                                 ddict['hard'].append((offset+i)*len(self.camera_yaws)+j)
-                                #print(full_path, infs)
+                                self.hard_frames += 1
 
             except Exception as e:
                 print(e)
                 bad_paths += f'{str(full_path)}\n'
         self.ddict = ddict
+        self.hard_frames /= len(self.camera_yaws)
             
-        print(ddict['hard'])
-        print(ddict['all'])
+        #print(ddict['hard'])
+        #print(ddict['all'])
 
         print(f'{data_dir}: {self.num_frames} frames (x{len(self.camera_yaws)})')
+        print(f'{data_dir}: {self.hard_frames} hard frames (x{len(self.camera_yaws)})')
         print('the following directories had errors:')
         print(bad_paths)
 
@@ -319,7 +323,8 @@ class RemoteMainDataset(MainDataset):
 if __name__ == '__main__':
     
     #dataset = MainDataset('/ssd2/dian/challenge_data/main_trajs_nocrash_nonoise', '/home/dianchen/carla_challenge/experiments/config_nocrash.yaml')
-    dataset = MainDataset('/data/aaronhua/wor/data/main/debug', '/home/aaron/workspace/carla/WorldOnRails/config.yaml')
+    dataset = MainDataset('/ssd0/aaronhua/wor/data/main/trainval', '/home/aaronhua/WorldOnRails/config.yaml', mode='train')
+    dataset = MainDataset('/ssd0/aaronhua/wor/data/main/trainval', '/home/aaronhua/WorldOnRails/config.yaml', mode='val')
     
     #for i, data in enumerate(dataset):
     #    if i % 3 != 0 :
