@@ -16,7 +16,8 @@ def main(args):
     bounds = list(range(0, len(route_paths), len(route_paths)//args.num_runners))
     # route = 'assets/routes_training/route_10.xml'
 
-    args.agent = 'autoagents/collector_agents/q_collector_image' # Use 'viz_collector' for collecting pretty images
+    #args.agent = 'autoagents/collector_agents/q_collector_image' 
+    args.agent = 'autoagents/collector_agents/q_collector_stream' 
     agent_config_path = 'config.yaml'
     with open(agent_config_path, 'r') as f:
         agent_config = yaml.safe_load(f)
@@ -74,7 +75,7 @@ if __name__ == '__main__':
     parser.add_argument('--port', type=int, default=2000)
     parser.add_argument('--trafficManagerSeed', default='0',
                         help='Seed used by the TrafficManager (default: 0)')
-    parser.add_argument('--timeout', default="600.0",
+    parser.add_argument('--timeout', default="99999.0",
                         help='Set the CARLA client timeout value in seconds')
     parser.add_argument('--split', type=str, default='training', choices=['devtest','testing','training'])
 

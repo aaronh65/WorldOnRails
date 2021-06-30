@@ -84,8 +84,8 @@ class QCollectorImage(AutonomousAgent):
 
         self.waypointer = None
 
-        if self.log_wandb:
-            wandb.init(project='carla_data_phase1')
+        #if self.log_wandb:
+        #    wandb.init(project='carla_data_phase1')
 
         self.noiser = OrnsteinUhlenbeckActionNoise(dt=1/FPS)
         self.prev_steer = 0
@@ -101,98 +101,34 @@ class QCollectorImage(AutonomousAgent):
         self.steers = torch.tensor(np.linspace(-self.max_steers,self.max_steers,self.num_steers)).float().to(self.device)
         self.throts = torch.tensor(np.linspace(0,self.max_throts,self.num_throts)).float().to(self.device)
 
-        self.prev_steer = 0
         self.lane_change_counter = 0
         self.lane_changed=None
-        self.stop_counter = 0
 
         self.rstring = _random_string()
         self.num_infractions = 0
         #os.environ['SAVE_ROOT'] = os.path.join(self.main_data_dir, self.rstring)
         os.environ['SAVE_ROOT'] = self.main_data_dir
-        
+
+        self.num_samples = 0
+        self.initialized = False
+
 
     def destroy(self):
         if len(self.lbls) == 0:
             return
 
-        self.flush_data()
+        #self.flush_data()
 
-    def flush_data(self):
-        if self.log_wandb:
-            wandb.log({
-                'vid': wandb.Video(np.stack(self.vizs).transpose((0,3,1,2)), fps=20, format='mp4')
-            })
-
-        # Save data
-        data_path = Path(os.path.join(self.main_data_dir, self.rstring))
-        if data_path.exists():
-            print('WARNING: overwriting data')
+    def cleanup(self):
+        inf_obj = CarlaDataProvider.get_infraction_list()[-1]
+        if len(self.infs) == 0:
+            self.infs.append(inf_obj.get_type().value)
         else:
-            data_path.mkdir(parents=True)
-        data_path = str(data_path)
-        print ('Saving to {}'.format(data_path))
-
-        lmdb_env = lmdb.open(data_path, map_size=int(1e10))
-
-        length = len(self.lbls)
-        with lmdb_env.begin(write=True) as txn:
-
-            txn.put('len'.encode(), str(length).encode())
-
-            for i in range(length):
-                
-                for idx in range(len(self.camera_yaws)):
-                    txn.put(
-                        f'wide_rgb_{idx}_{i:05d}'.encode(),
-                        np.ascontiguousarray(self.wide_rgbs[i][idx]).astype(np.uint8),
-                    )
-    
-                    txn.put(
-                        f'narr_rgb_{idx}_{i:05d}'.encode(),
-                        np.ascontiguousarray(self.narr_rgbs[i][idx]).astype(np.uint8),
-                    )
-    
-                    txn.put(
-                        f'wide_sem_{idx}_{i:05d}'.encode(),
-                        np.ascontiguousarray(self.wide_sems[i][idx]).astype(np.uint8),
-                    )
-                    
-                    txn.put(
-                        f'narr_sem_{idx}_{i:05d}'.encode(),
-                        np.ascontiguousarray(self.narr_sems[i][idx]).astype(np.uint8),
-                    )
-
-                txn.put(
-                    f'lbl_{i:05d}'.encode(),
-                    np.ascontiguousarray(self.lbls[i]).astype(np.uint8),
-                )
-
-                txn.put(
-                    f'loc_{i:05d}'.encode(),
-                    np.ascontiguousarray(self.locs[i]).astype(np.float32)
-                )
-
-                txn.put(
-                    f'rot_{i:05d}'.encode(),
-                    np.ascontiguousarray(self.rots[i]).astype(np.float32)
-                )
-
-                txn.put(
-                    f'spd_{i:05d}'.encode(),
-                    np.ascontiguousarray(self.spds[i]).astype(np.float32)
-                )
-
-                
-                txn.put(
-                    f'cmd_{i:05d}'.encode(),
-                    np.ascontiguousarray(self.cmds[i]).astype(np.float32)
-                )
-
-                txn.put(
-                    f'inf_{i:05d}'.encode(),
-                    np.ascontiguousarray(self.infs[i]).astype(np.float32)
-                )
+            self.infs[-1] = inf_obj.get_type().value
+        self.flush_data(self.num_samples-1)
+        with self.lmdb_env.begin(write=True) as txn:
+            print(f'NUM SAMPLES {self.num_samples}')
+            print(txn.put('len'.encode(), str(self.num_samples).encode()))
 
         self.vizs.clear()
         self.wide_rgbs.clear()
@@ -205,8 +141,63 @@ class QCollectorImage(AutonomousAgent):
         self.spds.clear()
         self.cmds.clear()
         self.infs.clear()
-        
-        lmdb_env.close()
+
+        self.lmdb_env.close()
+
+    def flush_data(self, i):
+        print(f'putting data at timestep {i}')
+        with self.lmdb_env.begin(write=True) as txn:
+            for idx in range(len(self.camera_yaws)):
+                txn.put(
+                    f'wide_rgb_{idx}_{i:05d}'.encode(),
+                    np.ascontiguousarray(self.wide_rgbs[i][idx]).astype(np.uint8),
+                )
+
+                txn.put(
+                    f'narr_rgb_{idx}_{i:05d}'.encode(),
+                    np.ascontiguousarray(self.narr_rgbs[i][idx]).astype(np.uint8),
+                )
+
+                txn.put(
+                    f'wide_sem_{idx}_{i:05d}'.encode(),
+                    np.ascontiguousarray(self.wide_sems[i][idx]).astype(np.uint8),
+                )
+                
+                txn.put(
+                    f'narr_sem_{idx}_{i:05d}'.encode(),
+                    np.ascontiguousarray(self.narr_sems[i][idx]).astype(np.uint8),
+                )
+
+            txn.put(
+                f'lbl_{i:05d}'.encode(),
+                np.ascontiguousarray(self.lbls[i]).astype(np.uint8),
+            )
+
+            txn.put(
+                f'loc_{i:05d}'.encode(),
+                np.ascontiguousarray(self.locs[i]).astype(np.float32)
+            )
+
+            txn.put(
+                f'rot_{i:05d}'.encode(),
+                np.ascontiguousarray(self.rots[i]).astype(np.float32)
+            )
+
+            txn.put(
+                f'spd_{i:05d}'.encode(),
+                np.ascontiguousarray(self.spds[i]).astype(np.float32)
+            )
+
+            
+            txn.put(
+                f'cmd_{i:05d}'.encode(),
+                np.ascontiguousarray(self.cmds[i]).astype(np.float32)
+            )
+
+            txn.put(
+                f'inf_{i:05d}'.encode(),
+                np.ascontiguousarray(self.infs[i]).astype(np.float32)
+            )
 
     def sensors(self):
         sensors = [
@@ -231,7 +222,16 @@ class QCollectorImage(AutonomousAgent):
             
         return sensors
 
+    def _init(self):
+        data_path = Path(self.main_data_dir) / 'data' / os.environ['ROUTE_NAME'] / os.environ['REPETITION']
+        data_path.mkdir(parents=True,exist_ok=True)
+        data_path = str(data_path)
+        self.lmdb_env = lmdb.open(data_path, map_size=int(1e10))
+        self.initialized = True
+
     def run_step(self, input_data, timestamp):
+        if not self.initialized:
+            self._init()
         
         wide_rgbs = []
         narr_rgbs = []
@@ -249,7 +249,6 @@ class QCollectorImage(AutonomousAgent):
             narr_rgbs.append(narr_rgb[...,:3])
             wide_sems.append(wide_sem)
             narr_sems.append(narr_sem)
-
 
         _, lbl = input_data.get('MAP')
         _, col = input_data.get('COLLISION')
@@ -303,17 +302,15 @@ class QCollectorImage(AutonomousAgent):
         if self.noise_collect:
             steer += self.noiser()
 
-        if len(self.vizs) > self.num_per_flush:
-            self.flush_data()
+        #if len(self.vizs) > self.num_per_flush:
+        #    self.flush_data()
 
         rgb = np.concatenate([wide_rgbs[0], narr_rgbs[0]], axis=1)
         spd = ego.get('spd')
         self.vizs.append(visualize_obs(rgb, yaw/180*math.pi, (steer, throt, brake), spd, cmd=cmd.value, lbl=lbl_copy))
 
         if col:
-            inf_obj = CarlaDataProvider.get_infraction_list()[-1]
-            self.infs[-1] = inf_obj.get_type().value
-            self.flush_data()
+            self.cleanup()
             raise Exception('Collector has collided!! Heading out :P')
 
         if spd < STOP_THRESH:
@@ -349,6 +346,8 @@ class QCollectorImage(AutonomousAgent):
                 self.num_infractions = len(infs)
 
             self.infs.append(inf)
+            self.flush_data(self.num_samples)
+            self.num_samples += 1
         
         self.num_frames += 1
         
@@ -412,7 +411,7 @@ class QCollectorImage(AutonomousAgent):
         steer, throt, brake = self.post_process(steer, throt, brake_prob, spd, cmd_value)
 
 
-        #steer, throt, brake = (2*np.random.random()-1, 0.75, 0)
+        steer, throt, brake = (2*np.random.random()-1, 0.75, 0)
         return steer, throt, brake
         #return carla.VehicleControl(steer=steer, throttle=throt, brake=brake)
 
