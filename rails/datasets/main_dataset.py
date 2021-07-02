@@ -171,16 +171,23 @@ class MainDataset(Dataset):
             except Exception as e:
                 print(e)
                 bad_paths += f'{str(full_path)}\n'
-        self.ddict = ddict
-        self.hard_frames /= len(self.camera_yaws)
-            
+
+                    
         #print(ddict['hard'])
         #print(ddict['all'])
 
         print(f'{data_dir}: {self.num_frames} frames (x{len(self.camera_yaws)})')
-        print(f'{data_dir}: {self.hard_frames} hard frames (x{len(self.camera_yaws)})')
         print('the following directories had errors:')
         print(bad_paths)
+
+        self.ddict = ddict
+        self.hard_frames /= len(self.camera_yaws)
+
+        if self.hard_frames == 0:
+            print(f'WARNING: no hard samples available for {data_dir} in {mode} mode')
+            self.ddict['hard'] = self.ddict['all']
+        else:
+            print(f'{data_dir}: {self.hard_frames} hard frames (x{len(self.camera_yaws)})')
 
         if self.multi_cam:
             self.dataset_len = self.num_frames*len(self.camera_yaws)
@@ -323,8 +330,10 @@ class RemoteMainDataset(MainDataset):
 if __name__ == '__main__':
     
     #dataset = MainDataset('/ssd2/dian/challenge_data/main_trajs_nocrash_nonoise', '/home/dianchen/carla_challenge/experiments/config_nocrash.yaml')
-    dataset = MainDataset('/ssd0/aaronhua/wor/data/main/trainval', '/home/aaronhua/WorldOnRails/config.yaml', mode='train')
-    dataset = MainDataset('/ssd0/aaronhua/wor/data/main/trainval', '/home/aaronhua/WorldOnRails/config.yaml', mode='val')
+    #dataset = MainDataset('/data3/aaronhua/wor/data/main/train_stream', '/home/aaronhua/WorldOnRails/config.yaml', mode='train')
+    #dataset = MainDataset('/data3/aaronhua/wor/data/main/val_stream', '/home/aaronhua/WorldOnRails/config.yaml', mode='val')
+    #dataset = MainDataset('/data3/aaronhua/wor/data/main/devtest_stream', '/home/aaronhua/WorldOnRails/config.yaml', mode='train')
+    dataset = MainDataset('/ssd0/aaronhua/wor/data/main/devtest_stream', '/home/aaronhua/WorldOnRails/config.yaml', mode='train')
     
     #for i, data in enumerate(dataset):
     #    if i % 3 != 0 :

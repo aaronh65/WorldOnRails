@@ -116,15 +116,17 @@ class QCollectorImage(AutonomousAgent):
     def destroy(self):
         if len(self.lbls) == 0:
             return
-
-        #self.flush_data()
+        self.cleanup()
 
     def cleanup(self):
-        inf_obj = CarlaDataProvider.get_infraction_list()[-1]
-        if len(self.infs) == 0:
-            self.infs.append(inf_obj.get_type().value)
-        else:
-            self.infs[-1] = inf_obj.get_type().value
+        inf_list = CarlaDataProvider.get_infraction_list()
+        if len(inf_list) > 0:
+            inf_obj = inf_list[-1]
+            if len(self.infs) == 0:
+                self.infs.append(inf_obj.get_type().value)
+            else:
+                self.infs[-1] = inf_obj.get_type().value
+
         self.flush_data(self.num_samples-1)
         with self.lmdb_env.begin(write=True) as txn:
             txn.put('len'.encode(), str(self.num_samples).encode())
@@ -409,7 +411,7 @@ class QCollectorImage(AutonomousAgent):
         steer, throt, brake = self.post_process(steer, throt, brake_prob, spd, cmd_value)
 
 
-        steer, throt, brake = (2*np.random.random()-1, 0.75, 0)
+        #steer, throt, brake = (2*np.random.random()-1, 0.75, 0)
         return steer, throt, brake
         #return carla.VehicleControl(steer=steer, throttle=throt, brake=brake)
 
