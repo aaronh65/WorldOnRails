@@ -54,6 +54,8 @@ config_path = f'{save_root}/config.yml'
 with open(config_path, 'w') as f:
     yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
+route_name = f'route_{args.routenum:02d}'
+
 # environ variables
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ["SAVE_ROOT"] = str(save_root)
@@ -62,12 +64,12 @@ os.environ["WORLD_PORT"] = "2000"
 os.environ["TM_PORT"] = "2002"
 os.environ["AGENT"] = args.agent
 os.environ["SPLIT"] = args.split
-os.environ["ROUTE_NAME"] = f'route_{args.routenum:02d}'
+os.environ["ROUTE_NAME"] = route_name
 os.environ["REPETITIONS"] = str(args.repetitions)
 os.environ["PRIVILEGED"] = str(int(privileged))
  
 
 print(os.environ["AGENT"])
-cmd = f'bash {project_root}/scripts/run_leaderboard.sh'
+cmd = f'bash {project_root}/scripts/run_leaderboard.sh &> {str(save_root)}/logs/AGENT_{str(route_name)}.txt'
 print(f'running {cmd} on {args.split} routes for {args.repetitions} repetitions')
 os.system(cmd)

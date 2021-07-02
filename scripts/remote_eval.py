@@ -25,7 +25,7 @@ parser.add_argument('--save_debug', action='store_true')
 parser.add_argument('--config_path', type=str, default='config.yaml')
 args = parser.parse_args()
 
-assert args.data_root != '/data/aaronhua', 'should not do heavy I/O to /data'
+#assert args.data_root != '/data/aaronhua', 'should not do heavy I/O to /data'
 
 # specific for multiprocessing and running multiple servers
 def kill(proc_pid):
@@ -54,7 +54,8 @@ try:
     carla_procs = list()
     worker_procs = list()
     gpus = list(range(args.gpus))
-    port_map = {gpu: (args.port*(gpu+1), args.port*(gpu+1)+2) for i, gpu in enumerate(gpus)}
+    port_map = {gpu: (int(args.port*(gpu+1)), int(args.port*(gpu+1)+2)) for i, gpu in enumerate(gpus)}
+    print(port_map)
 
     # agent-specific configurations
     config_path = f'{project_root}/config.yaml'
@@ -76,10 +77,10 @@ try:
 
     # route paths
     route_dir = f'{project_root}/assets/routes_{args.split}'
-    routes = [route.split('.')[0] for route in sorted(os.listdir(route_dir)) if route.endswith('.xml')]
+    routes = deque([route.split('.')[0] for route in sorted(os.listdir(route_dir)) if route.endswith('.xml')])
 
-    split_len = {'devtest':4,'testing':26,'training':50,}
-    routes = deque(list(range(split_len[args.split])))
+    #split_len = {'devtest':4,'testing':26,'training':50,}
+    #routes = deque(list(range(len(routes))))
     gpu_free = [True] * len(gpus) # True if gpu can be used for next leaderboard process
     gpu_proc = [None] * len(gpus) # tracks which gpu has which process
 
@@ -101,8 +102,8 @@ try:
         # make image + performance plot dirs
         gpu = gpu_free.index(True)
         wp, tp = port_map[gpu]
-        routenum = routes.popleft()
-        route_name = f'route_{routenum:02d}'
+        route_name = routes.popleft()
+        #route_name = f'route_{routenum:02d}'
 
         env = os.environ.copy()
         env["CUDA_VISIBLE_DEVICES"] = str(gpu)
@@ -115,8 +116,22 @@ try:
         env["ROUTE_NAME"] = route_name
         env["REPETITIONS"] = str(args.repetitions)
 
+
+        #os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
+        #os.environ["SAVE_ROOT"] = str(save_root)
+        #os.environ["TRACK"] = track
+        ##os.environ["WORLD_PORT"] = str(wp)
+        ##os.environ["TM_PORT"] = str(tp)
+        #os.environ["WORLD_PORT"] = "2000"
+        #os.environ["TM_PORT"] = "2002"
+        #os.environ["AGENT"] = args.agent
+        #os.environ["SPLIT"] = args.split
+        #os.environ["ROUTE_NAME"] = route_name
+        #os.environ["REPETITIONS"] = str(args.repetitions)
+
         # run command
-        cmd = f'bash {project_root}/scripts/run_leaderboard.sh &> {save_root}/logs/AGENT_{route_name}.txt'
+        #cmd = f'bash {project_root}/scripts/run_leaderboard.sh &> {str(save_root)}/logs/AGENT_{str(route_name)}.txt'
+        cmd = f'bash {project_root}/scripts/run_leaderboard.sh'
         print(f'running {cmd} on {args.split}/{route_name} for {args.repetitions} repetitions')
         worker_procs.append(subprocess.Popen(cmd, env=env, shell=True))
 

@@ -8,7 +8,7 @@ TEAM_AGENT=$PROJECT_ROOT/autoagents/$AGENT
 ROUTE_PATH=$PROJECT_ROOT/assets/routes_$SPLIT/$ROUTE_NAME.xml
 SCENARIOS=$PROJECT_ROOT/assets/all_towns_traffic_scenarios.json
 
-CHECKPOINT_ENDPOINT="$SAVE_ROOT/logs/${ROUTE_NAME}.txt"
+CHECKPOINT_ENDPOINT="$SAVE_ROOT/logs/${ROUTE_NAME}.json"
 
 python -m leaderboard.leaderboard_evaluator \
 --track=${TRACK} \
