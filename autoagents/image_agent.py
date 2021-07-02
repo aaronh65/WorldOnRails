@@ -90,10 +90,10 @@ class ImageAgent(AutonomousAgent):
         self.initialized=True
     
     def flush_data(self):
-        video = wandb.Video(np.stack(self.vizs).transpose((0,3,1,2)), fps=20, format='mp4')
-        if self.log_wandb:
-            wandb.log({
-                'vid': video})
+        #video = wandb.Video(np.stack(self.vizs).transpose((0,3,1,2)), fps=20, format='mp4')
+        #if self.log_wandb:
+        #    wandb.log({
+        #        'vid': video})
             
         self.vizs.clear()
 
@@ -174,20 +174,21 @@ class ImageAgent(AutonomousAgent):
         steer, throt, brake = self.post_process(steer, throt, brake_prob, spd, cmd_value)
 
         
-        rgb = np.concatenate([wide_rgb, narr_rgb[...,:3]], axis=1)
         
-        viz = visualize_obs(rgb, 0, (steer, throt, brake), spd, cmd=cmd_value+1)
-        self.vizs.append(viz)
         if self.config.save_debug and self.num_frames % 5 == 0:
+            rgb = np.concatenate([wide_rgb, narr_rgb[...,:3]], axis=1)
+            viz = visualize_obs(rgb, 0, (steer, throt, brake), spd, cmd=cmd_value+1)
+            self.vizs.append(viz)
+
             frame = self.num_frames // 5
             save_path = self.save_path / 'debug' / f'{frame:06d}.png'
             cv2.imwrite(str(save_path), cv2.cvtColor(viz, cv2.COLOR_RGB2BGR))
 
-        if len(self.vizs) > 1000:
-            self.flush_data()
+        #if len(self.vizs) > 1000:
+        #    self.flush_data()
 
         self.num_frames += 1
-
+        steer, throt, brake = (0,1,0)
         return carla.VehicleControl(steer=steer, throttle=throt, brake=brake)
     
     def _lerp(self, v, x):
