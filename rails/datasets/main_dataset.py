@@ -141,12 +141,12 @@ class MainDataset(Dataset):
                 if not add:
                     continue
 
-            txn = lmdb.open(
+            try:
+                txn = lmdb.open(
                     full_path,
                     max_readers=1, readonly=True,
                     lock=False, readahead=False, meminit=False).begin(write=False)
-                
-            try:
+
                 n = int(txn.get('len'.encode()))
                 if n < self.T+1:
                     print (full_path, ' is too small. consider deleting it.')
@@ -316,7 +316,7 @@ class RemoteMainDataset(MainDataset):
             file_idx  = self.idx_map[idx]
             yaw_idx   = self.yaw_map[idx]
 
-            lmdb_env = lmdb.open(file_name, map_size=int(1e10))
+            lmdb_env = lmdb.open(file_name, map_size=int(1e13))
             with lmdb_env.begin(write=True) as txn:
                 txn.put(
                     f'act_val_{yaw_idx}_{file_idx:05d}'.encode(),
@@ -333,7 +333,7 @@ if __name__ == '__main__':
     #dataset = MainDataset('/data3/aaronhua/wor/data/main/train_stream', '/home/aaronhua/WorldOnRails/config.yaml', mode='train')
     #dataset = MainDataset('/data3/aaronhua/wor/data/main/val_stream', '/home/aaronhua/WorldOnRails/config.yaml', mode='val')
     #dataset = MainDataset('/data3/aaronhua/wor/data/main/devtest_stream', '/home/aaronhua/WorldOnRails/config.yaml', mode='train')
-    dataset = MainDataset('/ssd0/aaronhua/wor/data/main/devtest_stream', '/home/aaronhua/WorldOnRails/config.yaml', mode='train')
+    dataset = MainDataset('/ssd0/aaronhua/wor/data/main/train_stream', '/home/aaronhua/WorldOnRails/config.yaml', mode='train')
     
     #for i, data in enumerate(dataset):
     #    if i % 3 != 0 :

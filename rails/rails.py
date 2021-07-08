@@ -112,6 +112,8 @@ class RAILS:
         loss = act_loss + self.seg_weight * seg_loss
 
         # EXPERIMENTAL expert loss
+
+        viz_inf = int(max(torch.max(infs[0]), 0))
         if self.use_expert:
             turn_loss_exp = (exp_loss[:,0]+exp_loss[:,1]+exp_loss[:,2]+exp_loss[:,3])/4
             lane_loss_exp  = (exp_loss[:,4]+exp_loss[:,5]+exp_loss[:,3])/3
@@ -123,7 +125,6 @@ class RAILS:
             exp_loss = torch.mean(exp_loss * exp_mask)
             loss += self.exp_weight * exp_loss
 
-            viz_inf = int(max(torch.max(infs[0]), 0))
 
         else:
             exp_loss = 0
@@ -219,6 +220,7 @@ class RAILS:
         loss = act_loss + self.seg_weight * seg_loss
 
         # EXPERIMENTAL expert loss
+        viz_inf = int(max(torch.max(infs[0]), 0))
         if self.use_expert:
             turn_loss_exp = (exp_loss[:,0]+exp_loss[:,1]+exp_loss[:,2]+exp_loss[:,3])/4
             lane_loss_exp  = (exp_loss[:,4]+exp_loss[:,5]+exp_loss[:,3])/3
@@ -229,8 +231,6 @@ class RAILS:
             exp_mask = torch.sum(infs != -1, dim=[-1,-2]).to(self.device)
             exp_loss = torch.mean(exp_loss * exp_mask)
             loss += self.exp_weight * exp_loss
-
-            viz_inf = int(max(torch.max(infs[0]), 0))
 
         else:
             exp_loss = 0

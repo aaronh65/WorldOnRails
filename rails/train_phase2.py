@@ -71,10 +71,10 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('--resume', default=None)
-    #parser.add_argument('--resume', default='/data/aaronhua/wor/training/main/dian/main_model_10.th')
+    #parser.add_argument('--resume', default=None)
+    parser.add_argument('--resume', default='/data/aaronhua/wor/training/main/dian/main_model_10.th')
     
-    parser.add_argument('--data-dir', default='/data/aaronhua/wor/data/main/debug')
+    parser.add_argument('--data-dir', default='/ssd1/aaronhua/wor/data/main/train_stream')
     parser.add_argument('--config-path', default='config.yaml')
     parser.add_argument('--device', choices=['cpu', 'cuda'], default='cuda')
     
@@ -88,8 +88,8 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--weight-decay', type=float, default=0)
     
-    parser.add_argument('--num-per-log', type=int, default=100, help='per iter')
-    parser.add_argument('--num-per-save', type=int, default=1, help='per epoch')
+    parser.add_argument('--num-per-log', type=int, default=250, help='per iter')
+    parser.add_argument('--num-per-save', type=int, default=2, help='per epoch')
     
     parser.add_argument('--balanced-cmd', action='store_true')
 
